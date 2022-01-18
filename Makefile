@@ -2,7 +2,7 @@ SRCS = $(wildcard *.c)
 OBJS = $(SRCS:.c=.o)
 BUILD_DIR = "build/"
 OUT_DIR = "out/"
-CFLAGS = -O3 -ffreestanding -nostdinc -nostdlib -mcpu=cortex-a53+nosimd
+CFLAGS = -O3 -ffreestanding -nostdlib -mcpu=cortex-a53+nosimd
 
 all: clean dirs kernel8.img
 
@@ -17,7 +17,7 @@ start.o: dirs start.S
 	clang --target=aarch64-elf $(CFLAGS) -c $< -o $(BUILD_DIR)/$@
 
 kernel8.img: dirs start.o $(OBJS)
-	ld.lld -m aarch64elf -nostdlib $(BUILD_DIR)/start.o $(BUILD_DIR)/$(OBJS) -T link.ld -o $(OUT_DIR)/kernel8.elf
+	ld.lld -m aarch64elf -nostdlib $(BUILD_DIR)/*.o -T link.ld -o $(OUT_DIR)/kernel8.elf
 	llvm-objcopy -O binary $(OUT_DIR)/kernel8.elf $(OUT_DIR)/kernel8.img
 
 clean:
