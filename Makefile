@@ -24,4 +24,4 @@ clean:
 	rm -rf $(OUT_DIR) $(BUILD_DIR) >/dev/null 2>/dev/null || true
 
 run:
-	qemu-system-aarch64 -M raspi3 -kernel $(OUT_DIR)/kernel8.img -serial null -serial stdio
+	qemu-system-aarch64 -M raspi3b -kernel $(OUT_DIR)/kernel8.elf -serial stdio
