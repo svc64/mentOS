@@ -4,7 +4,7 @@
 #include "mmio.h"
 
 void init_uart() {
-    // disable UART0 (while we're setting it up)
+	// disable UART0 (while we're setting it up)
 	mmio_write(UART0_CR, 0);
 
 	// configure GPIO functions
@@ -26,11 +26,11 @@ void init_uart() {
 	// write 0 to GPPUDCLK0 to apply our changes
 	mmio_write(GPPUDCLK0, 0);
  
-    // clear whatever pending interrupts we have here
+	// clear whatever pending interrupts we have here
 	// ICR = Interrupt Clear Register.
 	mmio_write(UART0_ICR, 0x7FF);
 
-    // set integer & fractional clock dividers
+	// set integer & fractional clock dividers
 	// divider = UART_CLOCK/(16 * baudrate) (broadcom docs page 183)
 	// Fraction part register = (Fractional part * 64) + 0.5
 	// we want a baudrate of 115200 here
