@@ -9,8 +9,8 @@ void init_uart() {
 
 	// configure GPIO functions
 	uint32_t sel1 = mmio_read(GPFSEL1);
-	// bits 12:14 = 100 (alternative function: UART TX)
-	// bits 15:17 = 100 (alternative function: UART RX)
+	// bits 12:14 = 0b100 (alternative function: UART TX)
+	// bits 15:17 = 0b100 (alternative function: UART RX)
     sel1 &= ~((0b111 << 12) | (0b111 << 15)); // clear GPIO 14/15
     sel1 |= (0b100 << 12) | (0b100 << 15);    // set alternative functions
     mmio_write(GPFSEL1, sel1);
