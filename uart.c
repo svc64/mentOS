@@ -7,9 +7,12 @@ void init_uart() {
     // disable UART0 (while we're setting it up)
 	mmio_write(UART0_CR, 0);
 
+	// configure GPIO functions
 	uint32_t sel1 = mmio_read(GPFSEL1);
-    sel1 &= ~((7 << 12) | (7 << 15)); // gpio14/gpio15
-    sel1 |= (4 << 12) | (4 << 15);    // alt0
+	// bits 12:14 = 100 (alternative function: UART TX)
+	// bits 15:17 = 100 (alternative function: UART RX)
+    sel1 &= ~((0b111 << 12) | (0b111 << 15)); // clear GPIO 14/15
+    sel1 |= (0b100 << 12) | (0b100 << 15);    // set alternative functions
     mmio_write(GPFSEL1, sel1);
 
 	// disable all GPIO pins
@@ -44,6 +47,7 @@ void init_uart() {
         0, // turbo
         MBOX_TAG_LAST // end our message
     };
+
     // The last 4 bits in a mailbox message specify the channel
 	uint64_t r = (((uint64_t)(&mbox) & ~0xF) | MBOX_CH_PROP & 0xF);
 
