@@ -7,6 +7,11 @@ void init_uart() {
     // disable UART0 (while we're setting it up)
 	mmio_write(UART0_CR, 0);
 
+	uint32_t sel1 = mmio_read(GPFSEL1);
+    sel1 &= ~((7 << 12) | (7 << 15)); // gpio14/gpio15
+    sel1 |= (4 << 12) | (4 << 15);    // alt0
+    mmio_write(GPFSEL1, sel1);
+
 	// disable all GPIO pins
 	mmio_write(GPPUD, 0);
 	delay(150);
@@ -28,19 +33,19 @@ void init_uart() {
 	// we want a baudrate of 115200 here
  
     // set UART_CLOCK to 3MHz
-    volatile unsigned int  __attribute__((aligned(16))) mbox[9] = {
-        sizeof(mbox), // buffer size
+    volatile uint32_t  __attribute__((aligned(16))) mbox[9] = {
+        9 * 4, // buffer size
         0, // request code 0 = process request
         MBOX_TAG_SETCLKRATE, // tag: set clock rate 
         12, // tag request length
         MBOX_CH_PROP, // property channel
         MBOX_CH_VUART, // VUART channel
-        3000000, // 3MHz
+        4000000, // 4MHz
         0, // turbo
         MBOX_TAG_LAST // end our message
     };
     // The last 4 bits in a mailbox message specify the channel
-	uint64_t r = (((uint64_t)(&mbox) & ~0xF) | MBOX_CH_PROP);
+	uint64_t r = (((uint64_t)(&mbox) & ~0xF) | MBOX_CH_PROP & 0xF);
 
 	// wait until we can talk to the VC
 	while ( mmio_read(MBOX_STATUS) & 0x80000000 ) { }
@@ -48,10 +53,10 @@ void init_uart() {
 	mmio_write(MBOX_WRITE, r);
 	while ( (mmio_read(MBOX_STATUS) & 0x40000000) || mmio_read(MBOX_READ) != r ) { }
  
-	// Divider = 3000000 / (16 * 115200) = 1.627 = ~1.
-	mmio_write(UART0_IBRD, 1);
-	// Fractional part register = (.627 * 64) + 0.5 = 40.6 = ~40.
-	mmio_write(UART0_FBRD, 40);
+	// Divider = 4000000 / (16 * 115200) = 2.170138888888889 = ~2.
+	mmio_write(UART0_IBRD, 2);
+	// Fractional part register = (.170138888888889 * 64) + 0.5 = 11.388888888888896 = ~11.
+	mmio_write(UART0_FBRD, 11);
  
 	// Enable FIFO & 8 bit data transmission (1 stop bit, no parity).
 	mmio_write(UART0_LCRH, (1 << 4) | (1 << 5) | (1 << 6));
