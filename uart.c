@@ -36,27 +36,18 @@ void init_uart() {
 	// we want a baudrate of 115200 here
  
     // set UART_CLOCK to 3MHz
-    volatile uint32_t  __attribute__((aligned(16))) mbox[9] = {
-        9 * 4, // buffer size
-        0, // request code 0 = process request
-        MBOX_TAG_SETCLKRATE, // tag: set clock rate 
-        12, // tag request length
-        MBOX_CH_PROP, // property channel
-        MBOX_CH_VUART, // VUART channel
-        4000000, // 4MHz
-        0, // turbo
-        MBOX_TAG_LAST // end our message
-    };
+    mbox[0] = 9 * 4; // buffer size
+    mbox[1] = 0; // request code 0 = process request
+    mbox[2] = MBOX_TAG_SETCLKRATE; // tag: set clock rate 
+    mbox[3] = 12; // tag request length
+    mbox[4] = MBOX_CH_PROP; // property channel
+    mbox[5] = MBOX_CH_VUART; // VUART channel
+    mbox[6] = 4000000; // 4MHz
+    mbox[7] = 0; // turbo off
+    mbox[8] = MBOX_TAG_LAST; // end our message
+	// send it
+	mbox_send(MBOX_CH_PROP);
 
-    // The last 4 bits in a mailbox message specify the channel
-	uint64_t r = (((uint64_t)(&mbox) & ~0xF) | MBOX_CH_PROP & 0xF);
-
-	// wait until we can talk to the VC
-	while ( mmio_read(MBOX_STATUS) & 0x80000000 ) { }
-	// send our message to property channel and wait for the response
-	mmio_write(MBOX_WRITE, r);
-	while ( (mmio_read(MBOX_STATUS) & 0x40000000) || mmio_read(MBOX_READ) != r ) { }
- 
 	// Divider = 4000000 / (16 * 115200) = 2.170138888888889 = ~2.
 	mmio_write(UART0_IBRD, 2);
 	// Fractional part register = (.170138888888889 * 64) + 0.5 = 11.388888888888896 = ~11.
