@@ -35,7 +35,7 @@ void init_uart() {
 	// Fraction part register = (Fractional part * 64) + 0.5
 	// we want a baudrate of 115200 here
  
-	// set UART_CLOCK to 3MHz
+	// set UART_CLOCK to 4MHz
 	mbox[0] = 9 * 4; // buffer size
 	mbox[1] = 0; // request code 0 = process request
 	mbox[2] = MBOX_TAG_SETCLKRATE; // tag: set clock rate
