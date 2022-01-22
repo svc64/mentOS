@@ -3,3 +3,5 @@ build/
 out/
 # Notepad++
 *.bak
+# wip stuff goes here
+wip/
