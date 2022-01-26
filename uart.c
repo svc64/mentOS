@@ -40,10 +40,16 @@ void init_uart() {
 	mbox[1] = 0; // request code 0 = process request
 	mbox[2] = MBOX_TAG_SETCLKRATE; // tag: set clock rate
 	mbox[3] = 12; // tag request length
-	mbox[4] = MBOX_CH_PROP; // property channel
-	mbox[5] = MBOX_CH_VUART; // VUART channel
-	mbox[6] = 4000000; // 4MHz
-	mbox[7] = 0; // turbo off
+	mbox[4] = 8; // size
+// --------------mbox[3] is the size of this------------------|
+// 															  |
+//	------mbox[4] is the size of this------------------|	  |
+	mbox[5] = MBOX_CH_VUART; // VUART channel		   |      |
+	mbox[6] = 4000000; // 4MHz						   |      |
+//  ---------------------------------------------------|	  |
+//															  |
+	mbox[7] = 0; // turbo off								  |
+// -----------------------------------------------------------|
 	mbox[8] = MBOX_TAG_LAST; // end our message
 	// send it
 	mbox_send(MBOX_CH_PROP);
