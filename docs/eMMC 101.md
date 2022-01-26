@@ -37,9 +37,15 @@
       - if `(mbox[5]) != 0)`, we did not get a valid device id
       
       - and obviously, `mbox_send` should return 0.
-      
-      - 
+    
+    - Sleep for 5000 microseconds after powering off, then power on.
+  
+  - Power on the card. Send the same mailbox message but with`mbox[6]`  set to `0x2`
 
+## C Definitions, etc:
 
+```c
+
+```
 
 
