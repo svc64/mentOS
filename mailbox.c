@@ -14,7 +14,7 @@ uint32_t mbox_send(uint8_t channel) {
 	while ( (mmio_read(MBOX_STATUS) & MBOX_EMPTY) || mmio_read(MBOX_READ) != r ) { }
     // if the response is successful, return 0. else return the response code.
     if (mbox[1] == MBOX_RESPONSE) {
-        return 0;
+        return 0; // success
     }
-    return mbox[1];
+    return mbox[1]; // fail, return the error code
 }
