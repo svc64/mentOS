@@ -8,24 +8,38 @@
   
   - Send a mailbox message to power off the card:
     
-    - `mbox[0] = 8 * 4` - size
-    
-    - `mbox[1] = 0` - request code 0 = process request
-    
-    - `mbox[2] = MBOX_TAG_SETPOWER`
-    
-    - `mobx[3] = 0x8` - buffer size
+    - Contents:
       
-      - size of `[4]` and `[5]`
-    
-    - `mbox[4]  = 0x8` - value length
+      - `mbox[0] = 8 * 4` - size
       
-      - size of `[5`] and `[6]`
+      - `mbox[1] = 0` - request code 0 = process request
+      
+      - `mbox[2] = MBOX_TAG_SETPOWER`
+      
+      - `mobx[3] = 0x8` - buffer size
+        
+        - size of `[4]` and `[5]`
+      
+      - `mbox[4]  = 0x8` - value length
+        
+        - size of `[5`] and `[6]`
+      
+      - `mbox[5] = 0x0` - the device ID is returned here
+      
+      - `mbox[6] = 0x2`  - power off
+      
+      - `mbox[7] = MBOX_TAG_LAST` 
     
-    - `mbox[5] = 0x0` - the device ID is returned here
-    
-    - `mbox[6] = 0x2`  - power off
-    
-    - `mbox[7] = MBOX_TAG_LAST` 
+    - Response (TODO: verify this! this info is very sus(TM)):
+      
+      - if `((mbox[6] & 0x3) != 0)`, the device did not power off successfully
+      
+      - if `(mbox[5]) != 0)`, we did not get a valid device id
+      
+      - and obviously, `mbox_send` should return 0.
+      
+      - 
+
+
 
 
