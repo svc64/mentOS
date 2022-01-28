@@ -10,7 +10,7 @@
     
     - Contents:
       
-      - `mbox[0] = 8 * 4` - size
+      - `mbox[0] = 8 * sizeof(uint32_t)` - size
       
       - `mbox[1] = 0` - request code 0 = process request
       
