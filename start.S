@@ -3,14 +3,22 @@
 .global _start
 
 _start:
-// drop to EL1
-// we might be running at EL2.. or EL3 (yes, raspi3b qemu starts at EL3(?!?!?!))... we have to figure that out
+/*
+drop to EL1
+the RPi starts at EL2 unless we add this to config.txt:
+
+kernel_old=1
+disable_commandline_tags=1
+
+then we start at EL3 like qemu
+*/
+
     mrs     x0, currentel
     lsr     x0, x0, 2
     and     x0, x0, 3
     cmp     x0, 3
-    b.ne el2_to_el1
-    b el3_to_el1
+    b.ne    .
+    b       el3_to_el1
 
 el3_to_el1:
     mov     x0, #(3 << 20)
@@ -31,7 +39,6 @@ el3_to_el1:
     orr     x0, x0, #(1 << 10) // all lower ELs are 64 bit
     msr     scr_el3, x0
 
-    mov     x0, xzr
     mov     x0, #0b101 // EL1
     msr     spsr_el3, x0
 
@@ -41,9 +48,6 @@ el3_to_el1:
 
     // cya on the other side!
     eret
-
-el2_to_el1:
-    b       .
 
 el1_start:
     // hang when running on a non primary CPU.
