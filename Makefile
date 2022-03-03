@@ -1,8 +1,8 @@
-SRCS = $(wildcard *.c)
-OBJS = $(SRCS:.c=.o)
+SRCS = $(wildcard *.c) $(wildcard *.s)
+OBJS = $(SRCS:.c=.c_o) $(SRCS:.s=.s_o)
 BUILD_DIR = "build/"
 OUT_DIR = "out/"
-CFLAGS = -O3 -ffreestanding -nostdlib -mcpu=cortex-a53+nosimd
+CFLAGS = -O3 -ffreestanding -nostdlib -mcpu=cortex-a53+nosimd -Iinclude
 
 all: clean dirs kernel8.img
 
@@ -10,14 +10,14 @@ dirs:
 	mkdir -p $(BUILD_DIR)
 	mkdir -p $(OUT_DIR)
 
-start.o: dirs start.S
-	clang --target=aarch64-elf $(CFLAGS) -c start.S -o $(BUILD_DIR)/start.o
-
-%.o: %.c
+%.s_o: %.s
 	clang --target=aarch64-elf $(CFLAGS) -c $< -o $(BUILD_DIR)/$@
 
-kernel8.img: dirs start.o $(OBJS)
-	ld.lld -m aarch64elf -nostdlib $(BUILD_DIR)/*.o -T link.ld -o $(OUT_DIR)/kernel8.elf
+%.c_o: %.c
+	clang --target=aarch64-elf $(CFLAGS) -c $< -o $(BUILD_DIR)/$@
+
+kernel8.img: dirs $(OBJS)
+	ld.lld -m aarch64elf -nostdlib $(BUILD_DIR)/*.c_o $(BUILD_DIR)/*.s_o -T link.ld -o $(OUT_DIR)/kernel8.elf
 	llvm-objcopy -O binary $(OUT_DIR)/kernel8.elf $(OUT_DIR)/kernel8.img
 
 clean:

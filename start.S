@@ -3,21 +3,11 @@
 .global _start
 
 _start:
-/*
-drop to EL1
-the RPi starts at EL2 unless we add this to config.txt:
-
-kernel_old=1
-disable_commandline_tags=1
-
-then we start at EL3 like qemu
-*/
-
     mrs     x0, currentel
     lsr     x0, x0, 2
     and     x0, x0, 3
     cmp     x0, 3
-    b.ne    .
+    b.ne    el2_to_el1
     b       el3_to_el1
 
 el3_to_el1:
@@ -45,6 +35,40 @@ el3_to_el1:
     // set elr_el3 to where we drop to el1
     adr     x0, el1_start
     msr     elr_el3, x0
+
+    // cya on the other side!
+    eret
+
+el2_to_el1:
+    mov     x0, #(3 << 20)
+    msr     cpacr_el1, x0 // enable FP/SIMD
+
+    // set all res1 bits to 1
+    mov     x0, xzr
+    orr     x0, x0, #(1 << 29)
+    orr     x0, x0, #(1 << 28)
+    orr     x0, x0, #(1 << 23)
+    orr     x0, x0, #(1 << 22)
+    orr     x0, x0, #(1 << 20)
+    orr     x0, x0, #(1 << 11)
+    // apply sctlr_el1 configuration
+    msr     sctlr_el1, x0
+
+    mov     x0, #(1 << 31)      // AArch64
+    orr     x0, x0, #(1 << 1)   // SWIO hardwired on Pi3
+    msr     hcr_el2, x0
+    mrs     x0, hcr_el2
+
+    mov     x2, #0x0800
+    movk    x2, #0x30d0, lsl #16
+    msr     sctlr_el1, x2
+
+    mov     x2, #0x3c4
+    msr     spsr_el2, x2
+
+    // set elr_el3 to where we drop to el1
+    adr     x0, el1_start
+    msr     elr_el2, x0
 
     // cya on the other side!
     eret
