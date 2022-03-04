@@ -5,7 +5,7 @@
 #include "mmio.h"
 extern volatile unsigned char _end; // where our kernel image ends
 #define HEAP_START  ((uintptr_t)(&_end))
-#define HEAP_END     MMIO_BASE
+#define HEAP_END    MMIO_BASE
 void *heap = (void *)HEAP_START; // actual heap with actual data
 struct metadata {
     size_t size;
