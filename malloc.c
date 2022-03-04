@@ -38,7 +38,7 @@ void *malloc(size_t size) {
                 // no space
                 return NULL;
             }
-            if (size <= md->size || (md == heap && md->next == NULL)) {
+            if (size <= md->size || no_allocations) {
                 // it's free real estate
                 md->size = size;
                 md->free = 0;
