@@ -47,7 +47,11 @@ const char *exc_str(int exc) {
     }
 }
 
-void panic(int exception_type) {
+void panic_unhandled_exc(int exception_type) {
     print("PANIC:\nUnhandled exception: %s\n", exc_str(exception_type));
-    while (1) {}
+    while (1);
+}
+void panic(const char *panic_msg) {
+    print("%s\n", panic_msg);
+    while (1);
 }

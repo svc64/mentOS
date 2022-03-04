@@ -12,7 +12,7 @@ void irq_handler() {
             break;
         default:
             print("Unhandled IRQ: %d\n", irq);
-            panic(PANIC_UNHANDLED_IRQ);
+            panic_unhandled_exc(PANIC_UNHANDLED_IRQ);
     }
     enable_irqs();
 }

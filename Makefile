@@ -2,7 +2,7 @@ SRCS = $(wildcard *.c) $(wildcard *.s)
 OBJS = $(SRCS:.c=.c_o) $(SRCS:.s=.s_o)
 BUILD_DIR = "build/"
 OUT_DIR = "out/"
-CFLAGS = -O3 -ffreestanding -nostdlib -mcpu=cortex-a53+nosimd -Iinclude
+CFLAGS = -O3 -ffreestanding -nostdlib -mcpu=cortex-a53+nosimd
 
 all: clean dirs kernel8.img
 

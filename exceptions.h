@@ -22,4 +22,5 @@ extern uint8_t exception_vectors;
 
 #define PANIC_UNHANDLED_IRQ EXC_IRQ_EL1h
 
-void panic(int exception_type);
+void panic_unhandled_exc(int exception_type);
+void panic(const char *panic_msg);
