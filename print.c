@@ -4,7 +4,7 @@
 void print_num(uint64_t num, int base) {
     uint64_t digitCount = 0;
     // count how many digits we have to print
-    for (uint64_t c = num; c % base; c /= base) {
+    for (uint64_t c = num; c; c /= base) {
         digitCount++;
     }
     if (!digitCount) {
@@ -15,7 +15,7 @@ void print_num(uint64_t num, int base) {
     // put them all in an array
     char digits[digitCount];
     uint64_t arrayPos = digitCount-1;
-    for (uint64_t c = num; (c % base && arrayPos >= 0); c /= base) {
+    for (uint64_t c = num; (c && arrayPos >= 0); c /= base) {
         char digit = c % base;
         // convert to ASCII
         switch (base) {
