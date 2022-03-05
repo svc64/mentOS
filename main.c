@@ -3,7 +3,8 @@
 #include "time.h"
 #include "uart.h"
 #include "malloc.h"
-
+#include "test_user_proc.h"
+#include "proc.h"
 
 extern volatile unsigned char _end; // where our kernel image ends
 
@@ -28,7 +29,10 @@ void main() {
     for (uintptr_t *p = (uintptr_t *)allocation_test; (uintptr_t)allocation_test < (uintptr_t)allocation_test + 8192; allocation_test += sizeof(uintptr_t)) {
         *p = 0x4141414141414141;
     }
-    enable_irqs();
-    init_timer();
-    timer_irq_after(200000);
+    //enable_irqs();
+    //init_timer();
+    //timer_irq_after(200000);
+    int pid = proc_new((uintptr_t)&test_proc_1);
+    print("created pid %d\n", pid);
+    move_to_proc(pid);
 }
