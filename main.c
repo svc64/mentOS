@@ -22,12 +22,13 @@ void main() {
     // totally random constant, btw
     //uint64_t *wut = (uint64_t *)0x5be3749d0211f909;
     //*(uint64_t *)wut = 0xc0885663c55641d8;
-    //enable_irqs();
-    //timer_irq_after(200000);
-    //init_timer();
     print("main addr: 0x%x\n", &main);
     void *allocation_test = malloc(8192);
     print("malloc(8192): 0x%x\n", (uintptr_t)allocation_test);
-
-    while (1) {}
+    for (uintptr_t *p = (uintptr_t *)allocation_test; (uintptr_t)allocation_test < (uintptr_t)allocation_test + 8192; allocation_test += sizeof(uintptr_t)) {
+        *p = 0x4141414141414141;
+    }
+    enable_irqs();
+    init_timer();
+    timer_irq_after(200000);
 }
