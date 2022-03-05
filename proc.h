@@ -11,7 +11,7 @@ struct __attribute__((__packed__)) arm64_thread_state {
 };
 struct __attribute__((__packed__)) proc {
     unsigned int pid;
-    uintptr_t stack;
+    void *stack;
     struct arm64_thread_state state;
 };
 

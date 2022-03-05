@@ -1,13 +1,15 @@
 #include <stddef.h>
 #include "print.h"
 #include "proc.h"
-#include "malloc.h"
+#include "mem.h"
 
 struct proc **proc_list = NULL;
 
 void proc_init() {
     if (!proc_list) {
-        proc_list = malloc(MAX_PROC * sizeof(struct proc *));
+        size_t proc_list_size = MAX_PROC * sizeof(struct proc *);
+        proc_list = malloc(proc_list_size);
+        bzero(proc_list, proc_list_size);
     }
 }
 
@@ -23,10 +25,12 @@ int proc_new(uintptr_t pc) {
     for (int i = 0; i < MAX_PROC; i++) {
         if (proc_list[i] == NULL) {
             proc_list[i] = malloc(sizeof(struct proc));
+            bzero(proc_list[i], sizeof(struct proc));
             proc_list[i]->pid = i;
-            proc_list[i]->stack = (uintptr_t)malloc(PAGE_SIZE + STACK_SIZE);
+            proc_list[i]->stack = malloc(PAGE_SIZE + STACK_SIZE);
+            bzero(proc_list[i]->stack, PAGE_SIZE + STACK_SIZE);
             proc_list[i]->state.pc = pc;
-            proc_list[i]->state.sp = proc_list[i]->stack & -PAGE_SIZE;
+            proc_list[i]->state.sp = (uintptr_t)proc_list[i]->stack & -PAGE_SIZE;
             return proc_list[i]->pid;
             break;
         }

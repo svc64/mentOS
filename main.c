@@ -2,7 +2,7 @@
 #include "exceptions.h"
 #include "time.h"
 #include "uart.h"
-#include "malloc.h"
+#include "mem.h"
 #include "test_user_proc.h"
 #include "proc.h"
 

@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include "exceptions.h"
-#include "malloc.h"
+#include "mem.h"
 #include "print.h"
 #include "mmio.h"
 extern volatile unsigned char _end; // where our kernel image ends
@@ -93,4 +93,23 @@ void free(void *mem) {
         prev_md->next = md->next;
     }
     md->free = 1;
+}
+
+void bzero(void *s, size_t n) {
+    size_t blocks_64 = n / sizeof(uint64_t);
+    size_t blocks_32 = n % sizeof(uint64_t) / sizeof(uint32_t);
+    size_t blocks_16 = n % sizeof(uint64_t) % sizeof(uint32_t) / sizeof(uint16_t);
+    size_t blocks_8 = n % sizeof(uint64_t) % sizeof(uint32_t) % sizeof(uint16_t) / sizeof(uint8_t);
+    for (size_t i = 0; i < blocks_64; i++) {
+        ((uint64_t *)s)[i] = 0;
+    }
+    for (size_t i = 0; i < blocks_32; i++) {
+        ((uint32_t *)s)[i] = 0;
+    }
+    for (size_t i = 0; i < blocks_16; i++) {
+        ((uint16_t *)s)[i] = 0;
+    }
+    for (size_t i = 0; i < blocks_8; i++) {
+        ((uint8_t *)s)[i] = 0;
+    }
 }
