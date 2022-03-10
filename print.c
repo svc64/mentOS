@@ -61,6 +61,9 @@ void print(const char *fmt, ...) {
             }
         } else {
             uart_putc(fmt[0]);
+            if (fmt[0] == '\n') {
+                uart_putc('\r');
+            }
         }
         fmt++;
     }
