@@ -6,6 +6,7 @@
 extern volatile unsigned char _end; // where our kernel image ends
 #define HEAP_START  ((uintptr_t)(&_end))
 #define HEAP_END    MMIO_BASE
+#define ALIGNMENT   16 // align allocations by 8 bytes
 void *heap = (void *)HEAP_START; // actual heap with actual data
 struct metadata {
     size_t size;
@@ -16,7 +17,14 @@ static uint8_t first = 1;
 void *malloc(size_t size) {
     // it's the first allocation, there's nothing to walk over.
     if (first) {
-        struct metadata *md = heap;
+        uintptr_t md_ptr = (uintptr_t)heap;
+        uint64_t data_ptr = md_ptr + sizeof(struct metadata);
+        if ((data_ptr & -ALIGNMENT) != data_ptr) {
+            data_ptr = (data_ptr + ALIGNMENT) & -ALIGNMENT;
+            md_ptr = data_ptr - sizeof(struct metadata);
+            heap = (void *)md_ptr;
+        }
+        struct metadata *md = (struct metadata *)md_ptr;
         md->free = 0;
         md->size = size;
         md->next = NULL;
@@ -52,16 +60,27 @@ void *malloc(size_t size) {
                 // we have a hole, great. does our size fit?
                 size_t hole_size = (uintptr_t)md->next - maybe_next;
                 if (hole_size >= size) {
-                    // there are 'hole_size' bytes between maybe_next and md->next, we can allocate there.
-                    struct metadata *new_md = (struct metadata *)(maybe_next);
-                    new_md->size = size;
-                    new_md->next = md->next;
-                    new_md->free = 0;
-                    md->next = new_md;
-                    return (void *)((uintptr_t)new_md + sizeof(struct metadata));
+                    // there are 'hole_size' bytes between maybe_next and md->next, maybe we can allocate there.
+                    // check alignment
+                    uintptr_t md_ptr = maybe_next;
+                    uintptr_t data_ptr = md_ptr + sizeof(struct metadata);
+                    if ((data_ptr & -ALIGNMENT) != data_ptr) {
+                        data_ptr = (data_ptr + ALIGNMENT) & -ALIGNMENT;
+                        md_ptr = data_ptr - sizeof(struct metadata);
+                    }
+                    // size check
+                    hole_size = (uintptr_t)md->next - md_ptr;
+                    if (hole_size >= size) {
+                        struct metadata *new_md = (struct metadata *)(md_ptr);
+                        new_md->size = size;
+                        new_md->next = md->next;
+                        new_md->free = 0;
+                        md->next = new_md;
+                        return (void *)((uintptr_t)new_md + sizeof(struct metadata));
+                    }
                 }
             } else if (maybe_next > (uintptr_t)md->next) {
-                panic("memory allocated on heap metadata, that's bad...\n");
+                //panic("memory allocated on heap metadata, that's bad...\n");
                 return NULL; // panic'd already, should never run
             }
         }
@@ -69,7 +88,13 @@ void *malloc(size_t size) {
         md = md->next;
     }
     // alright, there are no holes.
-    struct metadata *new_md = (struct metadata *)((uintptr_t)prev_md + sizeof(struct metadata) + prev_md->size);
+    uintptr_t new_md_ptr = (uintptr_t)prev_md + sizeof(struct metadata) + prev_md->size;
+    uint64_t data_ptr = new_md_ptr + sizeof(struct metadata);
+    if ((data_ptr & -ALIGNMENT) != data_ptr) {
+        data_ptr = (data_ptr + ALIGNMENT) & -ALIGNMENT;
+        new_md_ptr = data_ptr - sizeof(struct metadata);
+    }
+    struct metadata *new_md = (struct metadata *)(new_md_ptr);
     if ((uintptr_t)new_md + sizeof(struct metadata) + size > HEAP_END) {
         // no space
         return NULL;
@@ -78,7 +103,8 @@ void *malloc(size_t size) {
     new_md->size = size;
     new_md->next = NULL;
     prev_md->next = new_md;
-    return (struct metadata *)((uintptr_t)new_md + sizeof(struct metadata));
+    uintptr_t retval = (uintptr_t)new_md + sizeof(struct metadata);
+    return (struct metadata *)(retval);
 }
 
 void free(void *mem) {
