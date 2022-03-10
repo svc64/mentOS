@@ -18,7 +18,7 @@ void main() {
     print("Running in EL%d\n", current_el);
 
     // Set exception vectors
-    __asm__ __volatile__("msr vbar_el1, %0\n\t" : : "r" (&exception_vectors) : "memory");
+    __asm__ __volatile__("msr vbar_el1, %0\n\t; isb" : : "r" (&exception_vectors) : "memory");
     // do something stupid, just to make an exception
     // totally random constant, btw
     //uint64_t *wut = (uint64_t *)0x5be3749d0211f909;
@@ -29,9 +29,16 @@ void main() {
     for (uintptr_t *p = (uintptr_t *)allocation_test; (uintptr_t)allocation_test < (uintptr_t)allocation_test + 8192; allocation_test += sizeof(uintptr_t)) {
         *p = 0x4141414141414141;
     }
-    //enable_irqs();
-    //init_timer();
-    //timer_irq_after(200000);
+/*
+    enable_irqs();
+    init_timer();
+    timer_irq_after(200000);
+    while (1);
+*/
+    
+    print("huh...\n");
+    proc_init();
+    print("proc_init()...\n");
     int pid = proc_new((uintptr_t)&test_proc_1);
     print("created pid %d\n", pid);
     move_to_proc(pid);

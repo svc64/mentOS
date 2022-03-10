@@ -3,6 +3,18 @@
 .global _start
 
 _start:
+    // zero bss
+    adr     x0, __bss_start
+    adr     x1, __bss_end
+zero_bss:
+    str     xzr, [x0]
+    cmp     x0, x1
+    b.ne    iter
+    b       check_el
+iter:
+    add     x0, x0, #8
+    b       zero_bss
+check_el:
     mrs     x0, currentel
     lsr     x0, x0, 2
     and     x0, x0, 3
@@ -63,7 +75,7 @@ el2_to_el1:
     movk    x2, #0x30d0, lsl #16
     msr     sctlr_el1, x2
 
-    mov     x2, #0x3c4
+    mov     x2, #0x3c5
     msr     spsr_el2, x2
 
     // set elr_el3 to where we drop to el1

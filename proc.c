@@ -30,7 +30,7 @@ int proc_new(uintptr_t pc) {
             proc_list[i]->stack = malloc(PAGE_SIZE + STACK_SIZE);
             bzero(proc_list[i]->stack, PAGE_SIZE + STACK_SIZE);
             proc_list[i]->state.pc = pc;
-            proc_list[i]->state.sp = (uintptr_t)proc_list[i]->stack & -PAGE_SIZE;
+            proc_list[i]->state.sp = (((uintptr_t)proc_list[i]->stack + PAGE_SIZE) & -PAGE_SIZE) + STACK_SIZE;
             return proc_list[i]->pid;
             break;
         }

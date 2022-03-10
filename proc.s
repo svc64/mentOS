@@ -26,7 +26,6 @@
     ldr     x1, [\reg, #16 * 16]
     msr     sp_el0, x2
 	msr     elr_el1, x1
-    ldp     x0, x1, [\reg, #16 * 0]
     ldp     x2, x3, [\reg, #16 * 1]
     ldp     x4, x5, [\reg, #16 * 2]
     ldp     x6, x7, [\reg, #16 * 3]
@@ -41,6 +40,7 @@
     ldp     x24, x25, [\reg, #16 * 12]
     ldp     x26, x27, [\reg, #16 * 13]
     ldp     x28, x29, [\reg, #16 * 14]
+    ldp     x0, x1, [\reg, #16 * 0]
 .endm
 
 

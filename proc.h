@@ -10,9 +10,9 @@ struct __attribute__((__packed__)) arm64_thread_state {
     uintptr_t pc;
 };
 struct __attribute__((__packed__)) proc {
-    unsigned int pid;
     void *stack;
     struct arm64_thread_state state;
+    unsigned int pid;
 };
 
 void proc_init();
