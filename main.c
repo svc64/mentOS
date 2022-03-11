@@ -4,7 +4,6 @@
 #include "uart.h"
 #include "mem.h"
 #include "test_user_proc.h"
-#include "proc.h"
 
 extern volatile unsigned char _end; // where our kernel image ends
 
@@ -29,12 +28,10 @@ void main() {
     for (uintptr_t *p = (uintptr_t *)allocation_test; (uintptr_t)allocation_test < (uintptr_t)allocation_test + 8192; allocation_test += sizeof(uintptr_t)) {
         *p = 0x4141414141414141;
     }
-/*
     enable_irqs();
     init_timer();
     timer_irq_after(200000);
     while (1);
-*/
     
     print("huh...\n");
     proc_init();
