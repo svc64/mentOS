@@ -127,15 +127,19 @@ void bzero(void *s, size_t n) {
     size_t blocks_16 = n % sizeof(uint64_t) % sizeof(uint32_t) / sizeof(uint16_t);
     size_t blocks_8 = n % sizeof(uint64_t) % sizeof(uint32_t) % sizeof(uint16_t) / sizeof(uint8_t);
     for (size_t i = 0; i < blocks_64; i++) {
-        ((uint64_t *)s)[i] = 0;
+        *((uint64_t *)s) = 0;
+        s += sizeof(uint64_t);
     }
     for (size_t i = 0; i < blocks_32; i++) {
-        ((uint32_t *)s)[i] = 0;
+        *((uint32_t *)s) = 0;
+        s += sizeof(uint32_t);
     }
     for (size_t i = 0; i < blocks_16; i++) {
-        ((uint16_t *)s)[i] = 0;
+        *((uint16_t *)s) = 0;
+        s += sizeof(uint16_t);
     }
     for (size_t i = 0; i < blocks_8; i++) {
-        ((uint8_t *)s)[i] = 0;
+        *((uint8_t *)s) = 0;
+        s += sizeof(uint8_t);
     }
 }
