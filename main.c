@@ -9,6 +9,10 @@ extern volatile unsigned char _end; // where our kernel image ends
 
 void main() {
     init_uart();
+    init_timer();
+    // initialize the proc struct list
+    proc_init();
+    disable_irqs();
     print("_end: 0x%x\n", &_end);
     print("mentOS\n");
     uint64_t current_el;
@@ -23,20 +27,14 @@ void main() {
     //uint64_t *wut = (uint64_t *)0x5be3749d0211f909;
     //*(uint64_t *)wut = 0xc0885663c55641d8;
     print("main addr: 0x%x\n", &main);
-    void *allocation_test = malloc(8192);
-    print("malloc(8192): 0x%x\n", (uintptr_t)allocation_test);
-    for (uintptr_t *p = (uintptr_t *)allocation_test; (uintptr_t)allocation_test < (uintptr_t)allocation_test + 8192; allocation_test += sizeof(uintptr_t)) {
-        *p = 0x4141414141414141;
-    }
-    enable_irqs();
-    init_timer();
-    timer_irq_after(200000);
-    while (1);
-    
-    print("huh...\n");
-    proc_init();
     print("proc_init()...\n");
-    int pid = proc_new((uintptr_t)&test_proc_1);
-    print("created pid %d\n", pid);
-    move_to_proc(pid);
+    // create a new process
+    int pid0 = proc_new((uintptr_t)&test_proc_1);
+    print("created pid %d\n", pid0);
+    // create another
+    int pid1 = proc_new((uintptr_t)&test_proc_2);
+    print("created pid %d\n", pid1);
+    // move to it
+    proc_enter(pid0, 200000);
+    while (1);
 }

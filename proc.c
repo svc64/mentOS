@@ -2,8 +2,11 @@
 #include "print.h"
 #include "proc.h"
 #include "mem.h"
+#include "time.h"
+#include "exceptions.h"
 
 struct proc **proc_list = NULL;
+struct proc *current_proc = NULL;
 
 void proc_init() {
     if (!proc_list) {
@@ -11,12 +14,6 @@ void proc_init() {
         proc_list = malloc(proc_list_size);
         bzero(proc_list, proc_list_size);
     }
-}
-
-// we get here when we return from a proc
-void proc_return(struct arm64_thread_state *state) {
-    print("returned from pc 0x%x\n", state->pc);
-    while (1);
 }
 
 // once we support executables, maybe instead of providing pc
@@ -38,7 +35,24 @@ int proc_new(uintptr_t pc) {
     return -1;
 }
 
-// switch to proc `p`
-void move_to_proc(int pid) {
-    el0_drop(&(proc_list[pid]->state));
+// switch to proc `p` for `time`, then return
+void proc_enter(int pid, unsigned int time) {
+    current_proc = proc_list[pid];
+    timer_irq_after(time);
+    el0_drop(&(current_proc->state));
+}
+
+// We land here to handle an exception from a process.
+void proc_exit(struct arm64_thread_state *state, int exc) {
+    timer_irq_handled();
+    current_proc->state = *state;
+    for (int i = current_proc->pid + 1; i < MAX_PROC * 2; i++) {
+        int idx = i % MAX_PROC;
+        if (proc_list[idx] != NULL) {
+            current_proc = proc_list[idx];
+            proc_enter(current_proc->pid, 200000);
+        }
+    }
+    // if we get here. init is killed. terrible news.
+    panic("init proc killed!");
 }

@@ -16,5 +16,5 @@
 
 void init_timer();
 void timer_irq_after(uint64_t time);
-void timer_irq_handler();
+void timer_irq_handled();
 void delay(int32_t count);

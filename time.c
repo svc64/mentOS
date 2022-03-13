@@ -15,10 +15,9 @@ void timer_irq_after(uint64_t time) {
     mmio_write(TIMER_C1, current_timer_value);
 }
 
-void timer_irq_handler() {
-    mmio_write(TIMER_CS, TIMER_CS_M1); // tell the timer that we got the IRQ
-    print("got a timer IRQ!\n");
-    timer_irq_after(200000);
+// tell the timer that we handled this IRQ.
+void timer_irq_handled() {
+    mmio_write(TIMER_CS, TIMER_CS_M1);
 }
 
 void delay(int32_t count) {

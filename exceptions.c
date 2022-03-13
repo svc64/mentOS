@@ -47,7 +47,7 @@ const char *exc_str(int exc) {
     }
 }
 
-void panic_unhandled_exc(struct arm64_thread_state *state, int exception_type) {
+void panic_unhandled_exc(int exception_type) {
     uint64_t pc;
     __asm__ __volatile__("mrs %0, elr_el1\n\t" : "=r" (pc) :  : "memory");
     print("PANIC:\nUnhandled exception: %s\n", exc_str(exception_type));
@@ -55,6 +55,6 @@ void panic_unhandled_exc(struct arm64_thread_state *state, int exception_type) {
     while (1);
 }
 void panic(const char *panic_msg) {
-    print("%s\n", panic_msg);
+    print("PANIC: %s\n", panic_msg);
     while (1);
 }

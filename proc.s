@@ -26,4 +26,5 @@ el0_drop:
 	mov    x1, #0b00000
     msr    spsr_el1, x1
 	restore_state
+    msr    daifclr, #2 // enable IRQs
 	eret

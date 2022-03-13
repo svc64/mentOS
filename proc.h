@@ -17,5 +17,5 @@ struct __attribute__((__packed__)) proc {
 
 void proc_init();
 int proc_new(uintptr_t pc);
-void move_to_proc(int pid);
+void proc_enter(int pid, unsigned int time);
 void el0_drop(struct arm64_thread_state *);

@@ -1,5 +1,4 @@
 #include <stdint.h>
-#include "proc.h"
 extern uint8_t exception_vectors;
 #define EXC_SYNC_EL1t       0
 #define EXC_IRQ_EL1t        1
@@ -23,5 +22,5 @@ extern uint8_t exception_vectors;
 
 #define PANIC_UNHANDLED_IRQ EXC_IRQ_EL1h
 
-void panic_unhandled_exc(struct arm64_thread_state *state, int exception_type);
+void panic_unhandled_exc(int exception_type);
 void panic(const char *panic_msg);
