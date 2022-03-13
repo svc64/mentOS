@@ -121,6 +121,33 @@ void free(void *mem) {
     md->free = 1;
 }
 
+void memcpy(void *s, void *d, size_t n) {
+    size_t blocks_64 = n / sizeof(uint64_t);
+    size_t blocks_32 = n % sizeof(uint64_t) / sizeof(uint32_t);
+    size_t blocks_16 = n % sizeof(uint64_t) % sizeof(uint32_t) / sizeof(uint16_t);
+    size_t blocks_8 = n % sizeof(uint64_t) % sizeof(uint32_t) % sizeof(uint16_t) / sizeof(uint8_t);
+    for (size_t i = 0; i < blocks_64; i++) {
+        *((uint64_t *)s) = *((uint64_t *)d);
+        s += sizeof(uint64_t);
+        d += sizeof(uint64_t);
+    }
+    for (size_t i = 0; i < blocks_32; i++) {
+        *((uint32_t *)s) = *((uint32_t *)d);
+        s += sizeof(uint32_t);
+        d += sizeof(uint32_t);
+    }
+    for (size_t i = 0; i < blocks_16; i++) {
+        *((uint16_t *)s) = *((uint16_t *)d);
+        s += sizeof(uint16_t);
+        d += sizeof(uint16_t);
+    }
+    for (size_t i = 0; i < blocks_8; i++) {
+        *((uint8_t *)s) = *((uint8_t *)d);
+        s += sizeof(uint8_t);
+        d += sizeof(uint8_t);
+    }
+}
+
 void bzero(void *s, size_t n) {
     size_t blocks_64 = n / sizeof(uint64_t);
     size_t blocks_32 = n % sizeof(uint64_t) / sizeof(uint32_t);
