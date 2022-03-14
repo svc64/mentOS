@@ -18,3 +18,13 @@ void test_proc_2() {
     
     while (1);
 }
+
+void test_proc_3() {
+    while (1)
+    {
+        delay(10000);
+        print("test userspace proc 3\n");
+    }
+    
+    while (1);
+}

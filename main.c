@@ -4,6 +4,7 @@
 #include "uart.h"
 #include "mem.h"
 #include "test_user_proc.h"
+#include "proc.h"
 
 extern volatile unsigned char _end; // where our kernel image ends
 
@@ -33,6 +34,8 @@ void main() {
     print("created pid %d\n", pid0);
     // create another
     int pid1 = proc_new((uintptr_t)&test_proc_2);
+    print("created pid %d\n", pid1);
+    int pid2 = proc_new((uintptr_t)&test_proc_3);
     print("created pid %d\n", pid1);
     // move to it
     proc_enter(pid0, 200000);
