@@ -43,8 +43,7 @@ void proc_enter(int pid, unsigned int time) {
 }
 
 // We land here to handle an exception from a process.
-void proc_exit(struct arm64_thread_state *state, int exc) {
-    timer_irq_handled();
+void proc_exit(struct arm64_thread_state *state) {
     print("switch state: \n");
     for (int i = 0; i < 31; i++) {
         print("x%d = 0x%x\n", i, state->x[i]);

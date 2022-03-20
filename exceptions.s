@@ -38,14 +38,14 @@
     b       panic_unhandled_exc
 .endm
 
-.macro exc_handle_el0 num
+.macro exc_handle_el0 num, handler
     msr	    tpidr_el1, x0
     ldr     x1, =_start
     mov     sp, x1
     mrs     x0, tpidr_el1
     save_el0_state
     mov     x1, \num
-    bl      proc_exit
+    bl      \handler
     eret
 .endm
 
@@ -98,13 +98,13 @@ serror_el1h:    // SError, EL1h
     unhandled_exc 7
 // EL0, 64 bit
 sync_el0_64:    // Synchronous, EL0 (64 bit)
-    exc_handle_el0 8
+    unhandled_exc 8
 irq_el0_64:     // IRQ, EL0 (64 bit)
-    exc_handle_el0 9
+    exc_handle_el0 9, handle_irq
 fiq_el0_64:     // FIQ, EL0 (64 bit)
-    exc_handle_el0 10
+    unhandled_exc 10
 serror_el0_64:  // SError, EL0 (64 bit)
-    exc_handle_el0 11
+    unhandled_exc 11
 // we don't support 32 bit. we should NEVER get here.
 // EL0, 32 bit
 sync_el0_32:    // Synchronous, EL0 (32 bit)

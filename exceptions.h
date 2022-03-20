@@ -24,3 +24,4 @@ extern uint8_t exception_vectors;
 
 void panic_unhandled_exc(int exception_type);
 void panic(const char *panic_msg);
+const char *exc_str(int exc);
