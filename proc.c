@@ -55,7 +55,7 @@ void proc_exit(struct arm64_thread_state *state) {
         int idx = i % MAX_PROC;
         if (proc_list[idx] != NULL) {
             current_proc = proc_list[idx];
-            proc_enter(current_proc->pid, 200000);
+            proc_enter(current_proc->pid, PROC_TIME);
         }
     }
     // if we get here. init is killed. terrible news.

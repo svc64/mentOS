@@ -45,6 +45,7 @@
     mrs     x0, tpidr_el1
     save_el0_state
     mov     x1, \num
+    mrs     x2, esr_el1
     bl      \handler
     eret
 .endm
@@ -52,6 +53,10 @@
 .macro ventry handler
     b \handler
     .align 7
+.endm
+
+.macro disable_irqs
+    msr    daifset, #2
 .endm
 
 .align 11
@@ -98,12 +103,15 @@ serror_el1h:    // SError, EL1h
     unhandled_exc 7
 // EL0, 64 bit
 sync_el0_64:    // Synchronous, EL0 (64 bit)
-    unhandled_exc 8
+    disable_irqs
+    exc_handle_el0 8, el0_sync_handler
 irq_el0_64:     // IRQ, EL0 (64 bit)
     exc_handle_el0 9, handle_irq
 fiq_el0_64:     // FIQ, EL0 (64 bit)
+    disable_irqs
     unhandled_exc 10
 serror_el0_64:  // SError, EL0 (64 bit)
+    disable_irqs
     unhandled_exc 11
 // we don't support 32 bit. we should NEVER get here.
 // EL0, 32 bit
