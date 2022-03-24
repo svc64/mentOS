@@ -1,8 +1,8 @@
-SRCS = $(wildcard *.c) $(wildcard *.s)
-OBJS = $(SRCS:.c=.c_o) $(SRCS:.s=.s_o)
-BUILD_DIR = "build/"
-OUT_DIR = "out/"
+BUILD_DIR := ./build/
+OUT_DIR := ./out/
 CFLAGS = -O3 -ffreestanding -nostdlib -mcpu=cortex-a53
+SRCS := $(shell find . -name '*.cpp' -or -name '*.c' -or -name '*.s')
+OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 
 all: clean dirs kernel8.img
 
@@ -10,14 +10,16 @@ dirs:
 	mkdir -p $(BUILD_DIR)
 	mkdir -p $(OUT_DIR)
 
-%.s_o: %.s
-	clang --target=aarch64-elf $(CFLAGS) -c $< -o $(BUILD_DIR)/$@
+$(BUILD_DIR)/%.s.o: %.s
+	mkdir -p $(dir $@)
+	clang -I. --target=aarch64-elf $(CFLAGS) -c $< -o $@
 
-%.c_o: %.c
-	clang --target=aarch64-elf $(CFLAGS) -c $< -o $(BUILD_DIR)/$@
+$(BUILD_DIR)/%.c.o: %.c
+	mkdir -p $(dir $@)
+	clang -I. --target=aarch64-elf $(CFLAGS) -c $< -o $@
 
 kernel8.img: dirs $(OBJS)
-	ld.lld -m aarch64elf -nostdlib $(BUILD_DIR)/*.c_o $(BUILD_DIR)/*.s_o -T link.ld -o $(OUT_DIR)/kernel8.elf
+	ld.lld -m aarch64elf -nostdlib $(OBJS) -T link.ld -o $(OUT_DIR)/kernel8.elf
 	llvm-objcopy -O binary $(OUT_DIR)/kernel8.elf $(OUT_DIR)/kernel8.img
 
 clean:
