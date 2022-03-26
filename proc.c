@@ -21,6 +21,7 @@ void proc_init() {
 int proc_new(uintptr_t pc) {
     for (int i = 0; i < MAX_PROC; i++) {
         if (proc_list[i] == NULL) {
+            // TODO: deal with allocation errors
             proc_list[i] = malloc(sizeof(struct proc));
             bzero(proc_list[i], sizeof(struct proc));
             proc_list[i]->pid = i;
@@ -44,6 +45,7 @@ void proc_enter(int pid, unsigned int time) {
 
 // We land here to handle an exception from a process.
 void proc_exit(struct arm64_thread_state *state) {
+    // TODO: clean up
     print("switch state: \n");
     for (int i = 0; i < 31; i++) {
         print("x%d = 0x%x\n", i, state->x[i]);

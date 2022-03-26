@@ -2,18 +2,22 @@
 #include "time.h"
 // a test "userspace process"
 
-void do_some_syscall();
+void invalid_syscall();
+void putc_syscall(char c);
+uint32_t test_ret32();
+uint64_t test_ret64();
 
 void test_proc_1() {
-    while (1)
-    {
-        delay(10000);
-        print("test userspace proc 1\n");
-    }
+    putc_syscall('y');
+    putc_syscall('\n');
+    uint32_t ret32 = test_ret32();
+    uint64_t ret64 = test_ret64();
+    print("ret32: 0x%x\n", ret32);
+    print("ret64: 0x%x\n", ret64);
+    while (ret32 == 0x41414141 && ret64 == 0x4141414141414141);
 }
 
 void test_proc_2() {
-    do_some_syscall();
     while (1)
     {
         delay(10000);
@@ -28,6 +32,5 @@ void test_proc_3() {
         delay(10000);
         print("test userspace proc 3\n");
     }
-    
     while (1);
 }
