@@ -14,23 +14,17 @@ void test_proc_1() {
     uint64_t ret64 = test_ret64();
     print("ret32: 0x%x\n", ret32);
     print("ret64: 0x%x\n", ret64);
-    while (ret32 == 0x41414141 && ret64 == 0x4141414141414141);
+    while (ret32 == 0x41414141 && ret64 == 0x4141414141414141) {
+        invalid_syscall();
+    }
 }
 
 void test_proc_2() {
-    while (1)
-    {
-        delay(10000);
-        print("test userspace proc 2\n");
-    }
+    print("test userspace proc 2\n");
     while (1);
 }
 
 void test_proc_3() {
-    while (1)
-    {
-        delay(10000);
-        print("test userspace proc 3\n");
-    }
+    print("test userspace proc 3\n");
     while (1);
 }

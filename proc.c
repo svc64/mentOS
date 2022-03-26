@@ -4,6 +4,7 @@
 #include "mem.h"
 #include "time.h"
 #include "exceptions.h"
+#include "signal.h"
 
 struct proc **proc_list = NULL;
 struct proc *current_proc = NULL;
@@ -54,16 +55,38 @@ void proc_enter(int pid, unsigned int time) {
     el0_drop(&(current_proc->state));
 }
 
+// kill proc `pid` with `signal`
+void proc_kill(unsigned int pid, unsigned int signal) {
+    print("[%d] killed with signal %d\n", pid, signal);
+    struct proc *p = proc_list[pid];
+    current_proc = NULL; // TODO: this can race with the next line (proc_list[pid] = NULL) in proc_exit. fix this if and when we implement SMP.
+    proc_list[pid] = NULL; // context switcher shall not switch anymore.
+    // free stack and proc struct
+    free(p->stack);
+    free(p);
+}
+
+// process tried doing an invalid syscall, kill it
+void kill_invalid_syscall() {
+    proc_kill(current_proc->pid, SIGSYS);
+    proc_exit(NULL); // move on
+}
+
 // We land here to handle an exception from a process.
 void proc_exit(struct arm64_thread_state *state) {
-    current_proc->state = *state;
-    for (int i = current_proc->pid + 1; i < MAX_PROC * 2; i++) {
-        int idx = i % MAX_PROC;
+    unsigned int pid;
+    if (current_proc != NULL) {
+        current_proc->state = *state;
+        pid = current_proc->pid + 1;
+    } else {
+        pid = 1;
+    }
+    for (unsigned int i = pid; i < MAX_PROC * 2; i++) {
+        unsigned int idx = i % MAX_PROC;
         if (proc_list[idx] != NULL) {
-            current_proc = proc_list[idx];
-            proc_enter(current_proc->pid, PROC_TIME);
+            proc_enter(idx, PROC_TIME);
         }
     }
-    // if we get here. init is killed. terrible news.
-    panic("init proc killed!");
+    // if we get here. no proc is running. terrible news.
+    panic("no processes running!");
 }

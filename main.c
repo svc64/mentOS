@@ -36,7 +36,7 @@ void main() {
     int pid1 = proc_new((uintptr_t)&test_proc_2);
     print("created pid %d\n", pid1);
     int pid2 = proc_new((uintptr_t)&test_proc_3);
-    print("created pid %d\n", pid1);
+    print("created pid %d\n", pid2);
     // move to it
     proc_enter(pid0, PROC_TIME);
     while (1);

@@ -68,6 +68,10 @@
 .macro exc_handle_el0 num, handler
     setup_stack
     save_el0_state
+    run_el0_handler \num, \handler
+.endm
+
+.macro run_el0_handler num, handler
     mov     x0, sp
     add     x0, x0, #8 // x0 = pointer to state
     mov     x1, \num
@@ -138,8 +142,9 @@ sync_el0_64:    // Synchronous, EL0 (64 bit)
     lsr	    x18, x17, #26 // shift ESR to get the EC
     cmp     x18, #0b010101 // EC_SVC64
     b.eq    syscall_handler
-invalid_syscall: // TODO: fix this. handle an invalid syscall and other cases of el0 sync
-    exc_handle_el0 8, el0_sync_handler
+handle_el0_sync: // TODO: fix this. handle other cases of el0 syncq
+    disable_irqs
+    run_el0_handler 8, el0_sync_handler
 irq_el0_64:     // IRQ, EL0 (64 bit)
     exc_handle_el0 9, handle_irq
 fiq_el0_64:     // FIQ, EL0 (64 bit)
@@ -159,12 +164,14 @@ fiq_el0_32:     // FIQ, EL0 (32 bit)
 serror_el0_32:  // SError, EL0 (32 bit)
     unhandled_exc 15
 
+sigsys:
+    bl kill_invalid_syscall
 syscall_handler:
     adr     x17, syscall_table
     adr     x18, syscall_table_size
     ldr     x18, [x18]
     cmp     x16, x18 // check if the syscall number is valid
-    b.hs    invalid_syscall // TODO: kill the process here
+    b.hs    sigsys // invalid :(
     lsl     x16, x16, 4
     ldr     x18, [x17, x16, lsl #0]
     add     x16, x16, 8
@@ -179,7 +186,10 @@ syscall_handler:
     cmp     x19, 0
     b.ne    has_retval
 ret_from_syscall:
+    mov    x1, #0b00000
+    msr    spsr_el1, x1
     restore_state
+    msr    daifclr, #2 // enable IRQs
     eret
 has_retval:
     cmp x19, 32
