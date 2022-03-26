@@ -12,6 +12,9 @@ void proc_init() {
     if (!proc_list) {
         size_t proc_list_size = MAX_PROC * sizeof(struct proc *);
         proc_list = malloc(proc_list_size);
+        if (proc_list == NULL) {
+            panic("proc_init: failed to allocate proc_list!");
+        }
         bzero(proc_list, proc_list_size);
     }
 }
@@ -23,9 +26,17 @@ int proc_new(uintptr_t pc) {
         if (proc_list[i] == NULL) {
             // TODO: deal with allocation errors
             proc_list[i] = malloc(sizeof(struct proc));
+            if (proc_list[i] == NULL) {
+                print("proc_new: failed to allocate proc_list entry!\n");
+                return -1;
+            }
             bzero(proc_list[i], sizeof(struct proc));
             proc_list[i]->pid = i;
             proc_list[i]->stack = malloc(PAGE_SIZE + STACK_SIZE);
+            if (proc_list[i]->stack == NULL) {
+                print("proc_new: failed to allocate stack!\n");
+                free(proc_list[i]);
+            }
             bzero(proc_list[i]->stack, PAGE_SIZE + STACK_SIZE);
             proc_list[i]->state.pc = pc;
             proc_list[i]->state.sp = (((uintptr_t)proc_list[i]->stack + PAGE_SIZE) & -PAGE_SIZE) + STACK_SIZE;
@@ -45,13 +56,6 @@ void proc_enter(int pid, unsigned int time) {
 
 // We land here to handle an exception from a process.
 void proc_exit(struct arm64_thread_state *state) {
-    // TODO: clean up
-    print("switch state: \n");
-    for (int i = 0; i < 31; i++) {
-        print("x%d = 0x%x\n", i, state->x[i]);
-    }
-    print("sp: 0x%x\n", state->sp);
-    print("pc: 0x%x\n", state->pc);
     current_proc->state = *state;
     for (int i = current_proc->pid + 1; i < MAX_PROC * 2; i++) {
         int idx = i % MAX_PROC;
