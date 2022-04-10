@@ -60,8 +60,8 @@
 
 .macro setup_stack
     msr	    tpidr_el1, x0
-    ldr     x1, =_start
-    mov     sp, x1
+    ldr     x0, =_start
+    mov     sp, x0
     mrs     x0, tpidr_el1
 .endm
 
@@ -180,8 +180,9 @@ syscall_handler:
     // x18 = syscall pointer
     // x19 = return size (must preserve according to the calling convention)
     blr     x18
+    // point x18 to the saved x0 register
     mov     x18, sp
-    add     x18, x18, 8
+    add     x18, x18, 8 // x18 = &x0
     # we have to check if the return value exists and if it's in w0 (32 bit) or x0 (64 bit)
     cmp     x19, 0
     b.ne    has_retval

@@ -14,8 +14,7 @@ SECTIONS
     }
     . = ALIGN(4096);
     .data : { *(.data .data.* .gnu.linkonce.d*) }
-    _end = .;
 
    /DISCARD/ : { *(.comment) *(.gnu*) *(.note*) *(.eh_frame*) }
+   _end = .;
 }
-__bss_size = (__bss_end - __bss_start)>>3;

@@ -240,3 +240,11 @@ char *strchr(const char *s, int c) {
     }
     return NULL;
 }
+
+size_t strlen(const char *str) {
+    size_t c = 0;
+    for (size_t i = 0; str[i] != 0; i++) {
+        c++;
+    }
+    return c;
+}

@@ -1,0 +1,3 @@
+[submodule "FatFsMaker"]
+	path = FatFsMaker
+	url = https://github.com/svc64/FatFsMaker

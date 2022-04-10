@@ -1,10 +1,10 @@
 #include <stdint.h>
+#include "fatfs/ff.h"
 
 #define STACK_SIZE  524288  // 512KB
 #define PAGE_SIZE   4096
 #define MAX_PROC    1024    // Maximum processes
 #define PROC_TIME   200000  // The time we give to processes until we switch (for now).
-
 struct __attribute__((__packed__)) arm64_thread_state {
     uintptr_t x[31];
     uintptr_t sp;

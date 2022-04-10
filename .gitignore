@@ -1,3 +1,4 @@
+.vscode/
 .DS_Store
 build/
 out/
@@ -5,3 +6,4 @@ out/
 *.bak
 # wip stuff goes here
 wip/
+ramdisk.img
