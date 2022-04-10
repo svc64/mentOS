@@ -27,6 +27,7 @@ int open_syscall(char *path, int mode) {
     FRESULT res = f_open(fds[fd], path, fatfs_mode);
     if (res) {
         free(fds[fd]);
+        fds[fd] = NULL;
         switch (res)
         {
             case FR_NO_PATH:
@@ -114,6 +115,8 @@ int close_syscall(int fd) {
                 return E_UNKNOWN;
         }
     }
+    free(fds[fd]);
+    fds[fd] = NULL;
     return 0;
 }
 
@@ -197,6 +200,7 @@ int opendir_syscall(char *path) {
     FRESULT res = f_opendir(dirs[dir], path);
     if (res) {
         free(dirs[dir]);
+        dirs[dir] = NULL;
         switch (res)
         {
             case FR_NO_PATH:
@@ -262,5 +266,6 @@ int closedir_syscall(int dir) {
         }
     }
     free(dirs[dir]);
+    dirs[dir] = NULL;
     return 0;
 }
