@@ -10,6 +10,7 @@
 #define E_INVALID_DESCRIPTOR    -6 // Invalid file descriptor
 #define E_ACCESS                -7 // Access denied
 #define E_OOB                   -8 // Out of bounds
+#define E_NOMEM                 -9 // Out of memory
 
 struct dirent {
     uint8_t type;

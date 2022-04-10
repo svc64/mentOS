@@ -28,6 +28,9 @@ int open_syscall(char *path, int mode) {
         return E_MAX_REACHED; // max FDs reached
     }
     fds[fd] = malloc(sizeof(FIL));
+    if (fds[fd] == NULL) {
+        return E_NOMEM;
+    }
     FRESULT res = f_open(fds[fd], path, fatfs_mode);
     if (res) {
         free(fds[fd]);
@@ -201,7 +204,13 @@ int opendir_syscall(char *path) {
         return E_MAX_REACHED; // max open dirs reached
     }
     dirs[dir] = malloc(sizeof(dir_d));
+    if (dirs[dir] == NULL) {
+        return E_NOMEM;
+    }
     dirs[dir]->d = malloc(sizeof(DIR));
+    if (dirs[dir]->d == NULL) {
+        return E_NOMEM;
+    }
     dirs[dir]->end = false;
     FRESULT res = f_opendir(dirs[dir]->d, path);
     if (res) {
