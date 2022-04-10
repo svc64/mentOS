@@ -38,7 +38,7 @@ void test_proc_2() {
         while (true) {
             struct dirent ent;
             int r = read_dir(dir, &ent);
-            if (r != 0 || ent.name[0] == '\0') {
+            if (r != 0) {
                 print("end of dir reached\n");
                 break;
             }

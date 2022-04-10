@@ -6,7 +6,11 @@
 #include "files.h"
 
 FIL *fds[1024];
-DIR *dirs[1024];
+typedef struct { // Directory descriptor
+    DIR *d;
+    bool end;
+} dir_d;
+dir_d *dirs[1024];
 
 int open_syscall(char *path, int mode) {
     BYTE fatfs_mode = FA_READ;
@@ -196,8 +200,10 @@ int opendir_syscall(char *path) {
     if (dir == -1) {
         return E_MAX_REACHED; // max open dirs reached
     }
-    dirs[dir] = malloc(sizeof(DIR));
-    FRESULT res = f_opendir(dirs[dir], path);
+    dirs[dir] = malloc(sizeof(dir_d));
+    dirs[dir]->d = malloc(sizeof(DIR));
+    dirs[dir]->end = false;
+    FRESULT res = f_opendir(dirs[dir]->d, path);
     if (res) {
         free(dirs[dir]);
         dirs[dir] = NULL;
@@ -231,8 +237,11 @@ int read_dir_syscall(int dir, struct dirent *ent) {
     if (!dir_valid(dir)) {
         return E_INVALID_DESCRIPTOR;
     }
+    if (dirs[dir]->end) {
+        return E_OOB;
+    }
     FILINFO fno;
-    FRESULT res = f_readdir(dirs[dir], &fno);
+    FRESULT res = f_readdir(dirs[dir]->d, &fno);
     if (res) {
         switch (res)
         {
@@ -241,6 +250,10 @@ int read_dir_syscall(int dir, struct dirent *ent) {
             default:
                 return E_UNKNOWN;
         }
+    }
+    if (fno.fname[0] == '\0') {
+        dirs[dir]->end = true;
+        return E_OOB;
     }
     if (fno.fattrib & AM_DIR) {
         ent->type = DT_DIR;
@@ -255,7 +268,7 @@ int closedir_syscall(int dir) {
     if (!dir_valid(dir)) {
         return E_INVALID_DESCRIPTOR;
     }
-    FRESULT res = f_closedir(dirs[dir]);
+    FRESULT res = f_closedir(dirs[dir]->d);
     if (res) {
         switch (res)
         {
@@ -265,6 +278,7 @@ int closedir_syscall(int dir) {
                 return E_UNKNOWN;
         }
     }
+    free(dirs[dir]->d);
     free(dirs[dir]);
     dirs[dir] = NULL;
     return 0;
