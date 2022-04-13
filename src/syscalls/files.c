@@ -7,8 +7,8 @@
 #include "proc.h"
 #include "files_kernel.h"
 
-dir_d *dirs[MAX_DESCRIPTORS];
-fd *fds[MAX_DESCRIPTORS];
+struct dir_d *dirs[MAX_DESCRIPTORS];
+struct fd *fds[MAX_DESCRIPTORS];
 
 int open_syscall(char *path, int mode) {
     BYTE fatfs_mode = FA_READ;
@@ -25,7 +25,10 @@ int open_syscall(char *path, int mode) {
     if (fd == -1) {
         return E_MAX_REACHED; // max FDs reached
     }
-    fds[fd] = malloc(sizeof(fd));
+    fds[fd] = malloc(sizeof(struct fd));
+    if (fds[fd] == NULL) {
+        return E_NOMEM;
+    }
     fds[fd]->f = malloc(sizeof(FIL));
     if (fds[fd]->f == NULL) {
         return E_NOMEM;
@@ -207,7 +210,7 @@ int opendir_syscall(char *path) {
     if (dir == -1) {
         return E_MAX_REACHED; // max open dirs reached
     }
-    dirs[dir] = malloc(sizeof(dir_d));
+    dirs[dir] = malloc(sizeof(struct dir_d));
     if (dirs[dir] == NULL) {
         return E_NOMEM;
     }

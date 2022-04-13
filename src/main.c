@@ -71,6 +71,6 @@ void main() {
     print("created pid %d\n", proc_new((uintptr_t)&test_proc_2));
     print("created pid %d\n", proc_new((uintptr_t)&test_proc_3));
     // move to it
-    proc_enter(0, PROC_TIME);
+    proc_enter(1, PROC_TIME);
     while (1);
 }
