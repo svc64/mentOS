@@ -79,6 +79,7 @@ void *malloc(size_t size) {
                     }
                 }
             } else if (maybe_next > (uintptr_t)md->next) {
+                panic("memory allocated on heap metadata, that's bad...\n");
                 return NULL; // panic'd already, should never run
             }
         }
