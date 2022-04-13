@@ -5,6 +5,7 @@
 #include "time.h"
 #include "exceptions.h"
 #include "signal.h"
+#include "syscalls/files_kernel.h"
 
 struct proc **proc_list = NULL;
 struct proc *current_proc = NULL;
@@ -42,7 +43,6 @@ int proc_new(uintptr_t pc) {
             proc_list[i]->state.pc = pc;
             proc_list[i]->state.sp = (((uintptr_t)proc_list[i]->stack + PAGE_SIZE) & -PAGE_SIZE) + STACK_SIZE;
             return proc_list[i]->pid;
-            break;
         }
     }
     return -1;
@@ -59,6 +59,25 @@ void proc_enter(int pid, unsigned int time) {
 void proc_kill(unsigned int pid, unsigned int signal) {
     print("[%d] killed with signal %d\n", pid, signal);
     struct proc *p = proc_list[pid];
+    for (size_t i = 0; i < MAX_DESCRIPTORS; i++) {
+        if (fds[i] != NULL) {
+            if (fds[i]->proc == p) {
+                if (close_syscall(i)) {
+                    print("[%d] failed to close file descriptor %d\n", pid, i);
+                    print("[%d] kernel closed file %d\n", pid, i);
+                }
+            }
+        }
+        if (dirs[i] != NULL) {
+            if (dirs[i]->proc == p) {
+                if (closedir_syscall(i)) {
+                    print("[%d] failed to close directory descriptor %d\n", pid, i);
+                } else {
+                    print("[%d] kernel closed directory %d\n", pid, i);
+                }
+            }
+        }
+    }
     current_proc = NULL; // TODO: this can race with the next line (proc_list[pid] = NULL) in proc_exit. fix this if and when we implement SMP.
     proc_list[pid] = NULL; // context switcher shall not switch anymore.
     // free stack and proc struct

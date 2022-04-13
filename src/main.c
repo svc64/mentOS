@@ -18,7 +18,6 @@ void main() {
     print("it's alive\n");
     init_timer();
     struct ramdisk_header *rd = (struct ramdisk_header *)(end);
-
     if (memcmp(rd->magic, "RD", sizeof(rd->magic))) {
         print("invalid ramdisk magic: 0x%x 0x%x\n", end[0], end[1]);
         panic("no ramdisk!\n");
@@ -35,7 +34,8 @@ void main() {
     rdsize[5] = rdsize_swapped[2];
     rdsize[6] = rdsize_swapped[1];
     rdsize[7] = rdsize_swapped[0];
-    heap = (void *)((uintptr_t)heap + sizeof(struct ramdisk_header) + ramdisk_size); // adjust heap
+    heap = (void *)((uintptr_t)(heap + sizeof(struct ramdisk_header) + ramdisk_size + 2 * PAGE_SIZE) & -PAGE_SIZE); // adjust heap
+    print("heap start: 0x%x\n", heap);
     fs = malloc(sizeof(FATFS));
     if (!fs) {
         panic("failed to allocate filesystem data\n");
@@ -65,14 +65,12 @@ void main() {
     //uint64_t *wut = (uint64_t *)0x5be3749d0211f909;
     //*(uint64_t *)wut = 0xc0885663c55641d8;
     // create a new process
-    int pid0 = proc_new((uintptr_t)&test_proc_1);
-    print("created pid %d\n", pid0);
+    print("created pid %d\n", proc_new((uintptr_t)&file_close_test));
+    print("created pid %d\n", proc_new((uintptr_t)&test_proc_1));
     // create another
-    int pid1 = proc_new((uintptr_t)&test_proc_2);
-    print("created pid %d\n", pid1);
-    int pid2 = proc_new((uintptr_t)&test_proc_3);
-    print("created pid %d\n", pid2);
+    print("created pid %d\n", proc_new((uintptr_t)&test_proc_2));
+    print("created pid %d\n", proc_new((uintptr_t)&test_proc_3));
     // move to it
-    proc_enter(pid0, PROC_TIME);
+    proc_enter(0, PROC_TIME);
     while (1);
 }

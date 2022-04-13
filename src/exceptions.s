@@ -176,15 +176,15 @@ syscall_handler:
     ldr     x18, [x17, x16, lsl #0]
     add     x16, x16, 8
     add     x17, x17, x16
-    ldr     x19, [x17]
+    ldr     x17, [x17]
     // x18 = syscall pointer
-    // x19 = return size (must preserve according to the calling convention)
+    // x17 = return size
     blr     x18
     // point x18 to the saved x0 register
     mov     x18, sp
     add     x18, x18, 8 // x18 = &x0
     # we have to check if the return value exists and if it's in w0 (32 bit) or x0 (64 bit)
-    cmp     x19, 0
+    cmp     x17, 0
     b.ne    has_retval
 ret_from_syscall:
     mov    x1, #0b00000
@@ -193,7 +193,7 @@ ret_from_syscall:
     msr    daifclr, #2 // enable IRQs
     eret
 has_retval:
-    cmp x19, 32
+    cmp x17, 32
     b.ne ret64
 ret32:
     str w0, [x18]

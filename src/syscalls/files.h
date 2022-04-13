@@ -11,6 +11,7 @@
 #define E_ACCESS                -7 // Access denied
 #define E_OOB                   -8 // Out of bounds
 #define E_NOMEM                 -9 // Out of memory
+#define E_BUSY                 -10 // Resource busy
 
 struct dirent {
     uint8_t type;

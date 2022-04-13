@@ -22,4 +22,7 @@ syscall_table:
 /* 12 */   syscall opendir_syscall 32
 /* 13 */   syscall read_dir_syscall 32
 /* 14 */   syscall closedir_syscall 32
-syscall_table_size: .dword 15
+/* 15 */   syscall mkdir_syscall 32
+/* 16 */   syscall unlink_syscall 32
+/* 17 */   syscall rename_syscall 32
+syscall_table_size: .dword 18

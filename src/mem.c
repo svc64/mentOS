@@ -4,10 +4,9 @@
 #include "print.h"
 #include "mmio.h"
 extern volatile unsigned char _end; // where our kernel image ends
-#define HEAP_START  ((uintptr_t)(&_end))
 #define HEAP_END    MMIO_BASE
-#define ALIGNMENT   16 // align allocations by 8 bytes
-void *heap = (void *)HEAP_START; // actual heap with actual data
+#define ALIGNMENT   16 // align allocations by 16 bytes
+void *heap = (void *)(&_end); // actual heap with actual data
 struct metadata {
     size_t size;
     struct metadata *next;
@@ -80,7 +79,6 @@ void *malloc(size_t size) {
                     }
                 }
             } else if (maybe_next > (uintptr_t)md->next) {
-                //panic("memory allocated on heap metadata, that's bad...\n");
                 return NULL; // panic'd already, should never run
             }
         }

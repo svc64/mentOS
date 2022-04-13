@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "print.h"
 #include "time.h"
+#include "proc.h"
 #include "syscalls/files.h"
 // a test "userspace process"
 
@@ -30,23 +31,27 @@ void test_proc_1() {
     }
 }
 
+int terrible = 0;
+
+// Test automatic file/folder closing
+void file_close_test() {
+    if (terrible) {
+        print("TERRIBLE NEWS!!!!\n");
+    }
+    terrible = 1;
+    print("open() 0x%x\n", open("/test_dir/file.txt", O_READ));
+    print("opendir: 0x%x\n", opendir("/"));
+    print("crashing!\n");
+    // crash
+    invalid_syscall();
+}
+
 void test_proc_2() {
     print("test userspace proc 2\n");
-    int dir = opendir("/");
-    print("dir = %d\n", dir);
-    if (dir >= 0) {
-        while (true) {
-            struct dirent ent;
-            int r = read_dir(dir, &ent);
-            if (r != 0) {
-                print("end of dir reached\n");
-                break;
-            }
-            print("%s : %d\n", ent.name, ent.type);
-        }
-        print("closing directory...\n");
-        print("closedir return value: %d\n", closedir(dir));
-    }
+    int dir = opendir("/test_dir");
+    //print("dir = %d\n", dir);
+    print("closing directory...\n");
+    //print("closedir return value: %d\n", closedir(dir));
     while (1);
 }
 

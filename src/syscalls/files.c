@@ -4,13 +4,11 @@
 #include "fatfs/ff.h"
 #include "mem.h"
 #include "files.h"
+#include "proc.h"
+#include "files_kernel.h"
 
-FIL *fds[1024];
-typedef struct { // Directory descriptor
-    DIR *d;
-    bool end;
-} dir_d;
-dir_d *dirs[1024];
+dir_d *dirs[MAX_DESCRIPTORS];
+fd *fds[MAX_DESCRIPTORS];
 
 int open_syscall(char *path, int mode) {
     BYTE fatfs_mode = FA_READ;
@@ -18,7 +16,7 @@ int open_syscall(char *path, int mode) {
         fatfs_mode = FA_WRITE;
     }
     int fd = -1;
-    for (int i = 0; i < sizeof(fds); i++) {
+    for (int i = 0; i < MAX_DESCRIPTORS; i++) {
         if (fds[i] == NULL) {
             fd = i;
             break;
@@ -27,12 +25,14 @@ int open_syscall(char *path, int mode) {
     if (fd == -1) {
         return E_MAX_REACHED; // max FDs reached
     }
-    fds[fd] = malloc(sizeof(FIL));
-    if (fds[fd] == NULL) {
+    fds[fd] = malloc(sizeof(fd));
+    fds[fd]->f = malloc(sizeof(FIL));
+    if (fds[fd]->f == NULL) {
         return E_NOMEM;
     }
-    FRESULT res = f_open(fds[fd], path, fatfs_mode);
+    FRESULT res = f_open(fds[fd]->f, path, fatfs_mode);
     if (res) {
+        free(fds[fd]->f);
         free(fds[fd]);
         fds[fd] = NULL;
         switch (res)
@@ -44,15 +44,18 @@ int open_syscall(char *path, int mode) {
                 return E_INVALID_PATH;
             case FR_DISK_ERR:
                 return E_IOERR;
+            case FR_LOCKED:
+                return E_BUSY;
             default:
                 return E_UNKNOWN;
         }
     }
+    fds[fd]->proc = current_proc;
     return fd;
 }
 
 int fd_valid(int fd) {
-    if (fd < 0 || fd > sizeof(fds) - 1) {
+    if (fd < 0 || fd >= MAX_DESCRIPTORS) {
         return false;
     }
     if (fds[fd] == NULL) {
@@ -66,7 +69,7 @@ size_t read_syscall(int fd, void *buf, size_t count) {
     if (!fd_valid(fd)) {
         return E_INVALID_DESCRIPTOR;
     }
-    FRESULT res = f_read(fds[fd], buf, count, &bytes_read);
+    FRESULT res = f_read(fds[fd]->f, buf, count, &bytes_read);
     if (res) {
         switch (res)
         {
@@ -85,7 +88,7 @@ size_t ftell_syscall(int fd) {
     if (!fd_valid(fd)) {
         return E_INVALID_DESCRIPTOR;
     }
-    return f_tell(fds[fd]);
+    return f_tell(fds[fd]->f);
 }
 
 size_t write_syscall(int fd, void *buf, size_t count) {
@@ -93,7 +96,7 @@ size_t write_syscall(int fd, void *buf, size_t count) {
     if (!fd_valid(fd)) {
         return E_INVALID_DESCRIPTOR;
     }
-    FRESULT res = f_write(fds[fd], buf, count, &bytes_written);
+    FRESULT res = f_write(fds[fd]->f, buf, count, &bytes_written);
     if (res) {
         switch (res)
         {
@@ -112,7 +115,7 @@ int close_syscall(int fd) {
     if (!fd_valid(fd)) {
         return E_INVALID_DESCRIPTOR;
     }
-    FRESULT res = f_close(fds[fd]);
+    FRESULT res = f_close(fds[fd]->f);
     if (res) {
         switch (res)
         {
@@ -122,6 +125,7 @@ int close_syscall(int fd) {
                 return E_UNKNOWN;
         }
     }
+    free(fds[fd]->f);
     free(fds[fd]);
     fds[fd] = NULL;
     return 0;
@@ -131,17 +135,17 @@ size_t fsize_syscall(int fd) {
     if (!fd_valid(fd)) {
         return E_INVALID_DESCRIPTOR;
     }
-    return f_size(fds[fd]);
+    return f_size(fds[fd]->f);
 }
 
 int lseek_syscall(int fd, uintptr_t where) {
     if (!fd_valid(fd)) {
         return E_INVALID_DESCRIPTOR;
     }
-    if (where > f_size(fds[fd])) {
+    if (where > f_size(fds[fd]->f)) {
         return E_OOB;
     }
-    FRESULT res = f_lseek(fds[fd], where);
+    FRESULT res = f_lseek(fds[fd]->f, where);
     if (res) {
         switch (res)
         {
@@ -158,15 +162,15 @@ int ftruncate_syscall(int fd, uintptr_t length) {
     if (!fd_valid(fd)) {
         return E_INVALID_DESCRIPTOR;
     }
-    if (length > f_size(fds[fd])) {
+    if (length > f_size(fds[fd]->f)) {
         return E_OOB;
     }
-    uintptr_t current_off = f_tell(fds[fd]);
+    uintptr_t current_off = f_tell(fds[fd]->f);
     int ret = lseek_syscall(fd, length);
     if (ret) {
         return ret;
     }
-    FRESULT res = f_truncate(fds[fd]);
+    FRESULT res = f_truncate(fds[fd]->f);
     if (res) {
         switch (res)
         {
@@ -194,7 +198,7 @@ int ftruncate_syscall(int fd, uintptr_t length) {
 
 int opendir_syscall(char *path) {
     int dir = -1;
-    for (int i = 0; i < sizeof(dirs); i++) {
+    for (int i = 0; i < MAX_DESCRIPTORS; i++) {
         if (dirs[i] == NULL) {
             dir = i;
             break;
@@ -214,6 +218,7 @@ int opendir_syscall(char *path) {
     dirs[dir]->end = false;
     FRESULT res = f_opendir(dirs[dir]->d, path);
     if (res) {
+        free(dirs[dir]->d);
         free(dirs[dir]);
         dirs[dir] = NULL;
         switch (res)
@@ -229,14 +234,18 @@ int opendir_syscall(char *path) {
                 return E_UNKNOWN;
         }
     }
+    dirs[dir]->proc = current_proc;
     return dir;
 }
 
 int dir_valid(int dir) {
-    if (dir < 0 || dir > sizeof(dirs) - 1) {
+    if (dir < 0 || dir >= MAX_DESCRIPTORS) {
         return false;
     }
     if (dirs[dir] == NULL) {
+        return false;
+    }
+    if (dirs[dir]->proc != current_proc) {
         return false;
     }
     return true;
@@ -290,5 +299,67 @@ int closedir_syscall(int dir) {
     free(dirs[dir]->d);
     free(dirs[dir]);
     dirs[dir] = NULL;
+    return 0;
+}
+
+int mkdir_syscall(char *path) {
+    FRESULT res = f_mkdir(path);
+    if (res) {
+        switch (res)
+        {
+            case FR_NO_PATH:
+            case FR_NO_FILE:
+                return E_NXFILE;
+            case FR_INVALID_NAME:
+                return E_INVALID_PATH;
+            case FR_DISK_ERR:
+                return E_IOERR;
+            case FR_LOCKED:
+                return E_BUSY;
+            default:
+                return E_UNKNOWN;
+        }
+    }
+    return 0;
+}
+int unlink_syscall(char *path) {
+    FRESULT res = f_unlink(path);
+    if (res) {
+        switch (res)
+        {
+            case FR_NO_PATH:
+            case FR_NO_FILE:
+                return E_NXFILE;
+            case FR_INVALID_NAME:
+                return E_INVALID_PATH;
+            case FR_DISK_ERR:
+                return E_IOERR;
+            case FR_LOCKED:
+                return E_BUSY;
+            default:
+                return E_UNKNOWN;
+        }
+    }
+    return 0;
+}
+
+int rename_syscall(char *old_name, char *new_name) {
+    FRESULT res = f_rename(old_name, new_name);
+    if (res) {
+        switch (res)
+        {
+            case FR_NO_PATH:
+            case FR_NO_FILE:
+                return E_NXFILE;
+            case FR_INVALID_NAME:
+                return E_INVALID_PATH;
+            case FR_DISK_ERR:
+                return E_IOERR;
+            case FR_LOCKED:
+                return E_BUSY;
+            default:
+                return E_UNKNOWN;
+        }
+    }
     return 0;
 }
