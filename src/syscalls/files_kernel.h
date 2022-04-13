@@ -2,7 +2,7 @@
 #include "fatfs/ff.h"
 #define MAX_DESCRIPTORS 1024
 typedef struct { // Directory descriptor
-    DIR d; // FatFs directory
+    DIR *d; // FatFs directory
     struct proc *proc; // Owning proc
     bool end; // Set if we reached the end of this directory. Makes the whole descriptor unusable.
 } dir_d;
