@@ -18,14 +18,14 @@ DSTATUS disk_initialize (BYTE pdrv) {
 	return 0;
 }
 
-DRESULT disk_read (BYTE pdrv, BYTE *buf, LBA_t sector, UINT count) {
+DRESULT disk_read(BYTE pdrv, BYTE *buf, LBA_t sector, UINT count) {
 	memcpy(buf, (void *)((uintptr_t)(ramdisk) + (sector * SECTOR_SIZE)), count * SECTOR_SIZE);
 	return RES_OK;
 }
 
 #if FF_FS_READONLY == 0
 
-DRESULT disk_write (BYTE pdrv, const BYTE *buf, LBA_t sector, UINT count) {
+DRESULT disk_write(BYTE pdrv, const BYTE *buf, LBA_t sector, UINT count) {
 	memcpy((void *)((uintptr_t)(ramdisk) + (sector * SECTOR_SIZE)), buf, count * SECTOR_SIZE);
 	return RES_OK;
 }
@@ -40,10 +40,10 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void *buf) {
 		case GET_BLOCK_SIZE:
 			*(DWORD *)buf = SECTOR_SIZE;
 			break;
-		case GET_SECTOR_COUNT:
-		case CTRL_TRIM:
 		case CTRL_SYNC:
-		default:
+		case CTRL_TRIM:
+			return RES_OK;
+		case GET_SECTOR_COUNT:
 			return RES_PARERR;
 	}
 	return RES_OK;

@@ -15,6 +15,9 @@ int open_syscall(char *path, int mode) {
     if (mode & O_WRITE) {
         fatfs_mode = FA_WRITE;
     }
+    if (mode & O_CREATE) {
+        fatfs_mode |= FA_CREATE_NEW;
+    }
     int fd = -1;
     for (int i = 0; i < MAX_DESCRIPTORS; i++) {
         if (fds[i] == NULL) {
@@ -49,6 +52,8 @@ int open_syscall(char *path, int mode) {
                 return E_IOERR;
             case FR_LOCKED:
                 return E_BUSY;
+            case FR_EXIST:
+                return E_EXISTS;
             default:
                 return E_UNKNOWN;
         }
@@ -59,6 +64,7 @@ int open_syscall(char *path, int mode) {
 
 int fd_valid(int fd) {
     if (fd < 0 || fd >= MAX_DESCRIPTORS) {
+        print("fd invalid %d\n", fd);
         return false;
     }
     if (fds[fd] == NULL) {
@@ -115,11 +121,14 @@ size_t write_syscall(int fd, void *buf, size_t count) {
 }
 
 int close_syscall(int fd) {
+    print("close_syscall(%d)\n", fd);
     if (!fd_valid(fd)) {
+        print("close: invalid fd\n");
         return E_INVALID_DESCRIPTOR;
     }
     FRESULT res = f_close(fds[fd]->f);
     if (res) {
+        print("close res %d\n", res);
         switch (res)
         {
             case FR_DISK_ERR:
@@ -131,6 +140,7 @@ int close_syscall(int fd) {
     free(fds[fd]->f);
     free(fds[fd]);
     fds[fd] = NULL;
+    print("closed %d\n", fd);
     return 0;
 }
 

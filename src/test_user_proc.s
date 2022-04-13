@@ -4,6 +4,7 @@
 .global test_ret64
 .global open
 .global read
+.global write
 .global close
 .global opendir
 .global read_dir
@@ -32,6 +33,10 @@ open:
     ret
 read:
     mov x16, #5
+    svc #0x80
+    ret
+write:
+    mov x16, #7
     svc #0x80
     ret
 close:

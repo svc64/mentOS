@@ -4,6 +4,7 @@
 #include "print.h"
 #include "time.h"
 #include "proc.h"
+#include "mem.h"
 #include "syscalls/files.h"
 // a test "userspace process"
 
@@ -13,6 +14,7 @@ uint32_t test_ret32();
 uint64_t test_ret64();
 int open(char *path, int mode);
 size_t read(int fd, void *buf, size_t count);
+size_t write(int fd, void *buf, size_t count);
 int close(int fd);
 
 int opendir(char *path);
@@ -57,5 +59,21 @@ void test_proc_2() {
 
 void test_proc_3() {
     print("test userspace proc 3\n");
+    int file = open("/test_file", O_WRITE | O_CREATE);
+    print("open(): %d\n", file);
+    char *str = "it works!";
+    size_t str_len = strlen(str);
+    print("writing str: 0x%x\n", write(file, str, str_len));
+    print("closing %d: 0x%x\n", file, close(file));
+    file = open("/test_file", O_READ);
+    print("open() read: %d\n", file);
+    char buf[0x30];
+    size_t read_size = read(file, buf, sizeof(buf));
+    if (read_size != str_len) {
+        print("read size != length of string!");
+    } else {
+        buf[read_size] = '\0';
+    }
+    print("buf string: %s\n", buf);    
     while (1);
 }
