@@ -1,6 +1,24 @@
 .global irq_handler
 
 .macro save_el0_state
+    // save NEON state
+    stp     q30, q31, [sp, #-32]!
+    stp     q28, q29, [sp, #-32]!
+    stp     q26, q27, [sp, #-32]!
+    stp     q24, q25, [sp, #-32]!
+    stp     q22, q23, [sp, #-32]!
+    stp     q20, q21, [sp, #-32]!
+    stp     q18, q19, [sp, #-32]!
+    stp     q18, q19, [sp, #-32]!
+    stp     q16, q17, [sp, #-32]!
+    stp     q14, q15, [sp, #-32]!
+    stp     q12, q13, [sp, #-32]!
+    stp     q10, q11, [sp, #-32]!
+    stp     q8, q9, [sp, #-32]!
+    stp     q6, q7, [sp, #-32]!
+    stp     q4, q5, [sp, #-32]!
+    stp     q2, q3, [sp, #-32]!
+    stp     q0, q1, [sp, #-32]!
     // stash x0
     msr    tpidr_el1, x0
     // save elr and sp using x0
@@ -30,6 +48,7 @@
 .endm
 
 .macro restore_state
+    // restore x2 and x1 for sp and elr, x30 too because it's next to x2
     ldp     x30, x2, [x18, #16 * 15]
     ldr     x1, [x18, #16 * 16]
     msr     sp_el0, x2
@@ -48,6 +67,24 @@
     ldp     x24, x25, [x18, #16 * 12]
     ldp     x26, x27, [x18, #16 * 13]
     ldp     x28, x29, [x18, #16 * 14]
+    // restore NEON state
+    ldp     q0, q1, [x18, #32 * 8]
+    ldp     q2, q3, [x18, #32 * 9]
+    ldp     q4, q5, [x18, #32 * 10]
+    ldp     q6, q7, [x18, #32 * 11]
+    ldp     q8, q9, [x18, #32 * 12]
+    ldp     q10, q11, [x18, #32 * 13]
+    ldp     q12, q13, [x18, #32 * 14]
+    ldp     q14, q15, [x18, #32 * 15]
+    ldp     q16, q17, [x18, #32 * 16]
+    ldp     q18, q19, [x18, #32 * 17]
+    ldp     q20, q21, [x18, #32 * 18]
+    ldp     q22, q23, [x18, #32 * 19]
+    ldp     q24, q25, [x18, #32 * 20]
+    ldp     q26, q27, [x18, #32 * 21]
+    ldp     q28, q29, [x18, #32 * 22]
+    ldp     q30, q31, [x18, #32 * 23]
+    // restore x18
     ldp     x18, x19, [x18, #16 * 9]
 .endm
 

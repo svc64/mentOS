@@ -9,6 +9,7 @@ struct __attribute__((__packed__)) arm64_thread_state {
     uintptr_t x[31];
     uintptr_t sp;
     uintptr_t pc;
+    uintptr_t q[32];
 };
 struct __attribute__((__packed__)) proc {
     void *stack;
