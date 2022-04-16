@@ -4,9 +4,9 @@
 #include "fatfs/ff.h"
 #include "mem.h"
 #include "stdlib.h"
-#include "files.h"
+#include "syscalls/files.h"
 #include "proc.h"
-#include "files_kernel.h"
+#include "syscalls/files_kernel.h"
 
 struct dir_d *dirs[MAX_DESCRIPTORS];
 struct fd *fds[MAX_DESCRIPTORS];

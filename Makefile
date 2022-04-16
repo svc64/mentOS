@@ -1,10 +1,11 @@
 BUILD_DIR := ./build/
-OUT_DIR := ./out/
-SRC_DIR := ./src/
-CFLAGS = -O3 -ffreestanding -nostdlib -mcpu=cortex-a53
-SRCS := $(shell find $(SRC_DIR) -name '*.cpp' -or -name '*.c' -or -name '*.s')
-OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
-RAMDISK = ramdisk.img
+OUT_DIR = ./out/
+SRC_DIR = ./src/
+INCLUDE_DIR = ./include/
+CFLAGS := -O3 -ffreestanding -nostdlib -mcpu=cortex-a53
+SRCS = $(shell find $(SRC_DIR) -name '*.cpp' -or -name '*.c' -or -name '*.s')
+OBJS = $(SRCS:%=$(BUILD_DIR)/%.o)
+RAMDISK := ramdisk.img
 
 all: clean dirs kernel8.img
 
@@ -17,11 +18,11 @@ dirs:
 
 $(BUILD_DIR)/%.s.o: %.s
 	mkdir -p $(dir $@)
-	as -I$(SRC_DIR) --target=aarch64-elf $(CFLAGS) -c $< -o $@
+	as -I$(INCLUDE_DIR) --target=aarch64-elf $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/%.c.o: %.c
 	mkdir -p $(dir $@)
-	clang -I$(SRC_DIR) --target=aarch64-elf $(CFLAGS) -c $< -o $@
+	clang -I$(INCLUDE_DIR) --target=aarch64-elf $(CFLAGS) -c $< -o $@
 
 kernel8.img: dirs $(OBJS)
 	ld.lld -m aarch64elf -nostdlib $(OBJS) -T link.ld -o $(OUT_DIR)/kernel8.elf
