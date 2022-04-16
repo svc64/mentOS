@@ -17,10 +17,11 @@ extern void *heap; // heap start (from mem.c)
 void main() {
     init_uart();
     print("it's alive\n");
-    init_timer();
+    // Set exception vectors
+    __asm__ __volatile__("msr vbar_el1, %0\n\t; isb" : : "r" (&exception_vectors) : "memory");
     struct ramdisk_header *rd = (struct ramdisk_header *)(end);
-    if (memcmp(rd->magic, "RD", sizeof(rd->magic))) {
-        print("invalid ramdisk magic: 0x%x 0x%x\n", end[0], end[1]);
+    if (rd->magic == RAMDISK_MAGIC) {
+        print("invalid ramdisk magic: 0x%x\n", rd->magic);
         panic("no ramdisk!\n");
     }
     // get the ramdisk size, unswap it from big endian
@@ -48,6 +49,7 @@ void main() {
         print("mount fail: FatFs error %d\n", r);
         panic("Failed to mount ramdisk!");
     }
+    init_timer();
     // initialize the proc struct list
     proc_init();
     disable_irqs();
@@ -59,8 +61,6 @@ void main() {
     __asm__ __volatile__("mrs %0, CurrentEL\n\t" : "=r" (current_el) :  : "memory");
     current_el = (current_el >> 2) & 0x3;
     print("Running in EL%d\n", current_el);
-    // Set exception vectors
-    __asm__ __volatile__("msr vbar_el1, %0\n\t; isb" : : "r" (&exception_vectors) : "memory");
     // create processes
     int first_proc = proc_new((uintptr_t)&file_close_test);
     print("created pid %d\n", first_proc);

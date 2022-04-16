@@ -6,6 +6,9 @@ CFLAGS := -O3 -ffreestanding -nostdlib -mcpu=cortex-a53
 SRCS = $(shell find $(SRC_DIR) -name '*.cpp' -or -name '*.c' -or -name '*.s')
 OBJS = $(SRCS:%=$(BUILD_DIR)/%.o)
 RAMDISK := ramdisk.img
+OUT_FILE_NAME = kernel8
+OUT_FILE_IMG = $(OUT_DIR)/$(OUT_FILE_NAME).img
+OUT_FILE_ELF = $(OUT_DIR)/$(OUT_FILE_NAME).elf
 
 all: clean dirs kernel8.img
 
@@ -25,12 +28,12 @@ $(BUILD_DIR)/%.c.o: %.c
 	clang -I$(INCLUDE_DIR) --target=aarch64-elf $(CFLAGS) -c $< -o $@
 
 kernel8.img: dirs $(OBJS)
-	ld.lld -m aarch64elf -nostdlib $(OBJS) -T link.ld -o $(OUT_DIR)/kernel8.elf
-	llvm-objcopy -O binary $(OUT_DIR)/kernel8.elf $(OUT_DIR)/kernel8.img
-	printf "%s" "RD" >> $(OUT_DIR)/kernel8.img
-	stat -c%s $(RAMDISK) | xargs printf "%016lx" | xxd -r -p >> $(OUT_DIR)/kernel8.img
-	cat $(RAMDISK) >> $(OUT_DIR)/kernel8.img
-
+	ld.lld -m aarch64elf -nostdlib $(OBJS) -T link.ld -o $(OUT_FILE_ELF)
+	llvm-objcopy -O binary $(OUT_DIR)/kernel8.elf $(OUT_FILE_IMG)
+	printf "%s" "RDRDRDRD" >> $(OUT_FILE_IMG)
+	stat -c%s $(RAMDISK) | xargs printf "%016lx" | xxd -r -p >> $(OUT_FILE_IMG)
+	dd bs=1 count=496 if=/dev/zero >> $(OUT_FILE_IMG)
+	cat $(RAMDISK) >> $(OUT_FILE_IMG)
 clean:
 	rm -rf $(OUT_DIR) $(BUILD_DIR) >/dev/null 2>/dev/null || true
 

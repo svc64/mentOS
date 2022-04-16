@@ -5,10 +5,10 @@
 #include "print.h"
 #include "ramdisk.h"
 
-extern volatile unsigned char _end; // where our kernel image ends
-uint8_t *ramdisk = (uint8_t *)(&_end) + sizeof(struct ramdisk_header);
-
 #define SECTOR_SIZE 512 // Sector size
+
+extern volatile unsigned char _end; // where our kernel image ends
+uint8_t *ramdisk = (uint8_t *)(&_end) + SECTOR_SIZE;
 
 DSTATUS disk_status(BYTE pdrv) {
 	return 0;
