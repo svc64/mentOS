@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#define RAMDISK_MAGIC   0x5244524452445244 // "RDRDRDRD"
+#define RAMDISK_MAGIC   0x4452445244524452 // "RDRDRDRD"
 
 struct __attribute__((__packed__)) ramdisk_header {
     uint64_t magic; // should be RAMDISK_MAGIC

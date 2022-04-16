@@ -20,7 +20,7 @@ void main() {
     // Set exception vectors
     __asm__ __volatile__("msr vbar_el1, %0\n\t; isb" : : "r" (&exception_vectors) : "memory");
     struct ramdisk_header *rd = (struct ramdisk_header *)(end);
-    if (rd->magic == RAMDISK_MAGIC) {
+    if (rd->magic != RAMDISK_MAGIC) {
         print("invalid ramdisk magic: 0x%x\n", rd->magic);
         panic("no ramdisk!\n");
     }
