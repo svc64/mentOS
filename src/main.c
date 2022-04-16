@@ -60,17 +60,13 @@ void main() {
     print("Running in EL%d\n", current_el);
     // Set exception vectors
     __asm__ __volatile__("msr vbar_el1, %0\n\t; isb" : : "r" (&exception_vectors) : "memory");
-    // do something stupid, just to make an exception
-    // totally random constant, btw
-    //uint64_t *wut = (uint64_t *)0x5be3749d0211f909;
-    //*(uint64_t *)wut = 0xc0885663c55641d8;
-    // create a new process
-    print("created pid %d\n", proc_new((uintptr_t)&file_close_test));
+    // create processes
+    int first_proc = proc_new((uintptr_t)&file_close_test);
+    print("created pid %d\n", first_proc);
     print("created pid %d\n", proc_new((uintptr_t)&test_proc_1));
-    // create another
     print("created pid %d\n", proc_new((uintptr_t)&test_proc_2));
     print("created pid %d\n", proc_new((uintptr_t)&test_proc_3));
-    // move to it
-    proc_enter(0, PROC_TIME);
+    // move to the first one...
+    proc_enter(first_proc, PROC_TIME);
     while (1);
 }
