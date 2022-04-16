@@ -2,6 +2,7 @@
 #include "print.h"
 #include "proc.h"
 #include "mem.h"
+#include "stdlib.h"
 #include "time.h"
 #include "exceptions.h"
 #include "signal.h"

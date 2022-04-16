@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "fatfs/ff.h"
 #include "mem.h"
+#include "stdlib.h"
 #include "files.h"
 #include "proc.h"
 #include "files_kernel.h"

@@ -5,6 +5,7 @@
 #include "time.h"
 #include "proc.h"
 #include "mem.h"
+#include "stdlib.h"
 #include "syscalls/files.h"
 // a test "userspace process"
 

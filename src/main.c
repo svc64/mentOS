@@ -3,6 +3,7 @@
 #include "time.h"
 #include "uart.h"
 #include "mem.h"
+#include "stdlib.h"
 #include "test_user_proc.h"
 #include "proc.h"
 #include "fatfs/ff.h"
