@@ -39,6 +39,7 @@ int proc_new(uintptr_t pc) {
             if (proc_list[i]->stack == NULL) {
                 print("proc_new: failed to allocate stack!\n");
                 free(proc_list[i]);
+                return -1;
             }
             bzero(proc_list[i]->stack, PAGE_SIZE + STACK_SIZE);
             proc_list[i]->state.pc = pc;
