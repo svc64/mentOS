@@ -18,8 +18,7 @@ Now, if we try reading 64 bits from 0xB8019 the story is different.
 The CPU tries to read the... 94211.125th element of the array...?
 Yeah, no. The CPU reads 2 elements instead and uses them to form what should be in the address.
 This takes more cycles, and harms performance.
-However, it's not practical for us to write a program that
-does *absolutely no* unaligned memory access.
+However, it's not practical for us to write a program that does *absolutely no* unaligned memory access.
 
 The A bit (bit 1) in SCTLR_EL1 enables memory alignment checking.
 Every access to unaligned memory will generate an exception when this bit is enabled.
@@ -35,6 +34,7 @@ All addresses will be the same, this is just to enable the MMU and have unalinge
 
 extern volatile unsigned char _data;
 extern volatile unsigned char _end;
+
 
 // TODO: come on, we need to figure these out ourselves.
 int address_length;
