@@ -21,7 +21,7 @@ dirs:
 
 $(BUILD_DIR)/%.s.o: %.s
 	mkdir -p $(dir $@)
-	as -I$(INCLUDE_DIR) --target=aarch64-elf $(CFLAGS) -c $< -o $@
+	clang -I$(INCLUDE_DIR) --target=aarch64-elf $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/%.c.o: %.c
 	mkdir -p $(dir $@)

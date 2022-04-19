@@ -1,4 +1,5 @@
 #include "stdlib.h"
+#include "print.h"
 void *memcpy(void *s, void *d, size_t n) {
     void *dest = d;
     size_t blocks_64 = n / sizeof(uint64_t);

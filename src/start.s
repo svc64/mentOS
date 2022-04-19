@@ -30,6 +30,7 @@ set_sctlr:
     orr     x0, x0, #(1 << 22)
     orr     x0, x0, #(1 << 20)
     orr     x0, x0, #(1 << 11)
+    orr     x0, x0, #(1 << 1)
     // apply sctlr_el1 configuration
     msr     sctlr_el1, x0
     ret

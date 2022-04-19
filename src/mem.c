@@ -119,3 +119,18 @@ void free(void *mem) {
     }
     md->free = 1;
 }
+// Get a memory page.
+/* The MMU mapping code needs page-aligned allocations to work.
+The MMU code also runs before we allocate anything using malloc.
+So, this function bumps heap start (heap += PAGE_SIZE) and returns
+the old value of the heap start to "allocate" a page for us.
+WARNING: This function panics if we ever used malloc. It's meant to be
+used only in early stages when we set up the MMU. */
+void *bump_page() {
+    if (!first) {
+        panic("bump_page() called after the heap was used.");
+    }
+    void *retval = heap;
+    heap = (void *)((uintptr_t)heap + PAGE_SIZE);
+    return retval;
+}

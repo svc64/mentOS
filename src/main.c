@@ -38,6 +38,7 @@ void main() {
     rdsize[7] = rdsize_swapped[0];
     heap = (void *)((uintptr_t)(heap + sizeof(struct ramdisk_header) + ramdisk_size + 2 * PAGE_SIZE) & -PAGE_SIZE); // adjust heap
     print("heap start: 0x%x\n", heap);
+    init_mmu();
     fs = malloc(sizeof(FATFS));
     if (!fs) {
         panic("failed to allocate filesystem data\n");
@@ -69,5 +70,5 @@ void main() {
     print("created pid %d\n", proc_new((uintptr_t)&test_proc_3));
     // move to the first one...
     proc_enter(first_proc, PROC_TIME);
-    while (1);
+    panic("proc_enter returned. we shouldn't get here.");
 }

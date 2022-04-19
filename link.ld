@@ -13,7 +13,10 @@ SECTIONS
         __bss_end = .;
     }
     . = ALIGN(4096);
-    .data : { *(.data .data.* .gnu.linkonce.d*) }
+    .data : {
+         *(.data .data.* .gnu.linkonce.d*) 
+         . = ALIGN(4096);
+    }
 
    /DISCARD/ : { *(.comment) *(.gnu*) *(.note*) *(.eh_frame*) }
    _end = .;
