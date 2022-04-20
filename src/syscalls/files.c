@@ -6,6 +6,7 @@
 #include "stdlib.h"
 #include "syscalls/files.h"
 #include "proc.h"
+#include "errors.h"
 
 struct dir_d *dirs[MAX_DESCRIPTORS];
 struct fd *fds[MAX_DESCRIPTORS];
@@ -26,7 +27,7 @@ int open_syscall(char *path, int mode) {
         }
     }
     if (fd == -1) {
-        return E_MAX_REACHED; // max FDs reached
+        return E_LIMIT; // max FDs reached
     }
     fds[fd] = malloc(sizeof(struct fd));
     if (fds[fd] == NULL) {
@@ -120,6 +121,7 @@ ssize_t write_syscall(int fd, void *buf, size_t count) {
     return bytes_written;
 }
 
+// should never fail when a file is opened for reading only
 int close_syscall(int fd) {
     if (!fd_valid(fd)) {
         return E_INVALID_DESCRIPTOR;
@@ -214,7 +216,7 @@ int opendir_syscall(char *path) {
         }
     }
     if (dir == -1) {
-        return E_MAX_REACHED; // max open dirs reached
+        return E_LIMIT; // max open dirs reached
     }
     dirs[dir] = malloc(sizeof(struct dir_d));
     if (dirs[dir] == NULL) {
