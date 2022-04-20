@@ -6,7 +6,6 @@
 #include "stdlib.h"
 #include "syscalls/files.h"
 #include "proc.h"
-#include "syscalls/files_kernel.h"
 
 struct dir_d *dirs[MAX_DESCRIPTORS];
 struct fd *fds[MAX_DESCRIPTORS];
@@ -74,7 +73,7 @@ int fd_valid(int fd) {
     return true;
 }
 
-size_t read_syscall(int fd, void *buf, size_t count) {
+ssize_t read_syscall(int fd, void *buf, size_t count) {
     UINT bytes_read = -1;
     if (!fd_valid(fd)) {
         return E_INVALID_DESCRIPTOR;
@@ -94,14 +93,14 @@ size_t read_syscall(int fd, void *buf, size_t count) {
     return bytes_read;
 }
 
-size_t ftell_syscall(int fd) {
+ssize_t ftell_syscall(int fd) {
     if (!fd_valid(fd)) {
         return E_INVALID_DESCRIPTOR;
     }
     return f_tell(fds[fd]->f);
 }
 
-size_t write_syscall(int fd, void *buf, size_t count) {
+ssize_t write_syscall(int fd, void *buf, size_t count) {
     UINT bytes_written = -1;
     if (!fd_valid(fd)) {
         return E_INVALID_DESCRIPTOR;
@@ -122,14 +121,11 @@ size_t write_syscall(int fd, void *buf, size_t count) {
 }
 
 int close_syscall(int fd) {
-    print("close_syscall(%d)\n", fd);
     if (!fd_valid(fd)) {
-        print("close: invalid fd\n");
         return E_INVALID_DESCRIPTOR;
     }
     FRESULT res = f_close(fds[fd]->f);
     if (res) {
-        print("close res %d\n", res);
         switch (res)
         {
             case FR_DISK_ERR:
@@ -141,11 +137,10 @@ int close_syscall(int fd) {
     free(fds[fd]->f);
     free(fds[fd]);
     fds[fd] = NULL;
-    print("closed %d\n", fd);
     return 0;
 }
 
-size_t fsize_syscall(int fd) {
+ssize_t fsize_syscall(int fd) {
     if (!fd_valid(fd)) {
         return E_INVALID_DESCRIPTOR;
     }

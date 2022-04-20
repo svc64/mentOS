@@ -6,7 +6,7 @@
 #include "time.h"
 #include "exceptions.h"
 #include "signal.h"
-#include "syscalls/files_kernel.h"
+#include "syscalls/files.h"
 
 struct proc **proc_list = NULL;
 struct proc *current_proc = NULL;
@@ -22,16 +22,15 @@ void proc_init() {
     }
 }
 
-// once we support executables, maybe instead of providing pc
-// we'll provide an executable address? idk, we'll see.
-int proc_new(uintptr_t pc) {
+// create a new process
+struct proc *proc_new() {
     for (int i = 0; i < MAX_PROC; i++) {
         if (proc_list[i] == NULL) {
             // TODO: deal with allocation errors
             proc_list[i] = malloc(sizeof(struct proc));
             if (proc_list[i] == NULL) {
                 print("proc_new: failed to allocate proc_list entry!\n");
-                return -1;
+                return NULL;
             }
             bzero(proc_list[i], sizeof(struct proc));
             proc_list[i]->pid = i;
@@ -39,15 +38,65 @@ int proc_new(uintptr_t pc) {
             if (proc_list[i]->stack == NULL) {
                 print("proc_new: failed to allocate stack!\n");
                 free(proc_list[i]);
-                return -1;
+                return NULL;
             }
             bzero(proc_list[i]->stack, PAGE_SIZE + STACK_SIZE);
-            proc_list[i]->state.pc = pc;
             proc_list[i]->state.sp = (((uintptr_t)proc_list[i]->stack + PAGE_SIZE) & -PAGE_SIZE) + STACK_SIZE;
-            return proc_list[i]->pid;
+            return proc_list[i];
         }
     }
-    return -1;
+    return NULL;
+}
+
+// Create a new process from a function
+int proc_new_func(uintptr_t pc) {
+    struct proc *p = proc_new();
+    if (p == NULL) {
+        return -1;
+    }
+    p->state.pc = pc;
+    return p->pid;
+}
+
+// Create a new process from an executable file
+int proc_new_executable(const char *path) {
+    int fd = open_syscall(path, O_READ);
+    if (fd < 0) {
+        print("failed to open executable %s\n", path);
+        return -1;
+    }
+    ssize_t file_size = fsize_syscall(fd);
+    uintptr_t executable_mem = malloc(PAGE_SIZE + file_size);
+    uintptr_t executable_start = (executable_mem + PAGE_SIZE) & -PAGE_SIZE;
+    ssize_t size_read = read_syscall(fd, executable_start, file_size);
+    if (size_read > 0xffffffff) {
+        print("executable too big: %s\n", path);
+        close_syscall(fd);
+        return -1;
+    }
+    if (size_read != file_size) {
+        print("failed to read executable %s\n", path);
+        close_syscall(fd);
+        return -1;
+    }
+    close_syscall(fd);
+    struct mentos_executable *exec = (struct mentos_executable *)executable_start;
+    if (exec->magic != EXECUTABLE_MAGIC) {
+        print("incorrect executable magic: 0x%x\n", exec->magic);
+        return -1;
+    }
+    uintptr_t pc = executable_start + exec->entry_offset;
+    if (pc >= executable_start + file_size) {
+        print("entry point offset out of bounds in %s\n", path);
+        return -1;
+    }
+    struct proc *p = proc_new();
+    if (p == NULL) {
+        return -1;
+    }
+    p->executable = executable_mem;
+    p->state.pc = pc;
+    return p->pid;
 }
 
 // switch to proc `p` for `time`, then return
@@ -84,6 +133,9 @@ void proc_kill(unsigned int pid, unsigned int signal) {
     proc_list[pid] = NULL; // context switcher shall not switch anymore.
     // free stack and proc struct
     free(p->stack);
+    if (p->executable != NULL) {
+        free(p->executable);
+    }
     free(p);
 }
 

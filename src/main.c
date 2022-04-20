@@ -62,13 +62,11 @@ void main() {
     __asm__ __volatile__("mrs %0, CurrentEL\n\t" : "=r" (current_el) :  : "memory");
     current_el = (current_el >> 2) & 0x3;
     print("Running in EL%d\n", current_el);
-    // create processes
-    int first_proc = proc_new((uintptr_t)&file_close_test);
-    print("created pid %d\n", first_proc);
-    print("created pid %d\n", proc_new((uintptr_t)&test_proc_1));
-    print("created pid %d\n", proc_new((uintptr_t)&test_proc_2));
-    print("created pid %d\n", proc_new((uintptr_t)&test_proc_3));
-    // move to the first one...
-    proc_enter(first_proc, PROC_TIME);
+    int pid = proc_new_executable("/shell");
+    if (pid < 0) {
+        panic("failed to run shell!");
+    }
+    print("created pid %d\n", pid);
+    proc_enter(pid, PROC_TIME);
     panic("proc_enter returned. we shouldn't get here.");
 }
