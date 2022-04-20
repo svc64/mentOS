@@ -7,3 +7,7 @@ out/
 # wip stuff goes here
 wip/
 ramdisk.img
+userspace/*/build/
+userspace/*/out/
+userspace/*/*/build/
+userspace/*/*/out/
