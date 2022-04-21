@@ -168,14 +168,13 @@ serror_el1h:    // SError, EL1h
 sync_el0_64:    // Synchronous, EL0 (64 bit)
     disable_irqs
     save_el0_state
+handle_el0_sync: // TODO: fix this. handle other cases of el0 sync
     // is it a syscall?
     // note: don't touch x0-x7, they are parameters for our syscall.
-    mrs     x17, esr_el1
-    lsr	    x18, x17, #26 // shift ESR to get the EC
+    mrs     x19, esr_el1
+    lsr     x18, x19, #26 // shift ESR to get the EC
     cmp     x18, #0b010101 // EC_SVC64
     b.eq    syscall_handler
-handle_el0_sync: // TODO: fix this. handle other cases of el0 sync
-    disable_irqs
     run_el0_handler 8, el0_sync_handler
 irq_el0_64:     // IRQ, EL0 (64 bit)
     exc_handle_el0 9, handle_irq
@@ -199,24 +198,24 @@ serror_el0_32:  // SError, EL0 (32 bit)
 sigsys:
     bl kill_invalid_syscall
 syscall_handler:
-    adr     x17, syscall_table
+    adr     x19, syscall_table
     adr     x18, syscall_table_size
     ldr     x18, [x18]
     cmp     x16, x18 // check if the syscall number is valid
     b.hs    sigsys // invalid :(
     lsl     x16, x16, 4
-    ldr     x18, [x17, x16, lsl #0]
+    ldr     x18, [x19, x16, lsl #0]
     add     x16, x16, 8
-    add     x17, x17, x16
-    ldr     x17, [x17]
+    add     x19, x19, x16
+    ldr     x19, [x19]
     // x18 = syscall pointer
-    // x17 = return size
+    // x19 = return size
     blr     x18
     // point x18 to the saved x0 register
     mov     x18, sp
     add     x18, x18, 8 // x18 = &x0
     # we have to check if the return value exists and if it's in w0 (32 bit) or x0 (64 bit)
-    cmp     x17, 0
+    cmp     x19, 0
     b.ne    has_retval
 ret_from_syscall:
     mov    x1, #0b00000
@@ -225,7 +224,7 @@ ret_from_syscall:
     enable_irqs
     eret
 has_retval:
-    cmp x17, 32
+    cmp x19, 32
     b.ne ret64
 ret32:
     str w0, [x18]
