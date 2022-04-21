@@ -40,10 +40,11 @@
 .endm
 
 el0_drop:
+    msr     spsel, 0b1 // use SP_EL1 as SP
     mov     x1, #0b0000
     msr     spsr_el1, x1
+    // set exception stack
     ldr     x30, =_start
     mov     sp, x30
 	restore_state
-    msr     daifclr, #2 // enable IRQs
 	eret
