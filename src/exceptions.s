@@ -168,7 +168,15 @@ serror_el1h:    // SError, EL1h
 sync_el0_64:    // Synchronous, EL0 (64 bit)
     disable_irqs
     save_el0_state
+    // drop to EL1t
+    mov     x1, #0b0100 // EL1t
+    orr     x1, x1, #(1 << 7) // Mask IRQs
+    msr     spsr_el1, x1
+    adr     x1, handle_el0_sync
+    msr     elr_el1, x1
+    eret
 handle_el0_sync: // TODO: fix this. handle other cases of el0 sync
+    msr     spsel, 0b1 // use SP_EL1 as SP
     // is it a syscall?
     // note: don't touch x0-x7, they are parameters for our syscall.
     mrs     x19, esr_el1
@@ -194,7 +202,6 @@ fiq_el0_32:     // FIQ, EL0 (32 bit)
     unhandled_exc 14
 serror_el0_32:  // SError, EL0 (32 bit)
     unhandled_exc 15
-
 sigsys:
     bl kill_invalid_syscall
 syscall_handler:
