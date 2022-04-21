@@ -70,6 +70,10 @@ void main() {
     if (pid < 0) {
         panic("failed to run shell!");
     }
+    int test2_pid = proc_new_executable("/test2");
+    if (test2_pid < 0) {
+        panic("failed to run test2 app!");
+    }
     print("created pid %d\n", pid);
     proc_enter(test_pid, PROC_TIME);
     panic("proc_enter returned. we shouldn't get here.");

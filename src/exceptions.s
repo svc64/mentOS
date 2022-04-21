@@ -221,7 +221,6 @@ ret_from_syscall:
     mov    x1, #0b00000
     msr    spsr_el1, x1
     restore_state
-    enable_irqs
     eret
 has_retval:
     cmp x19, 32
