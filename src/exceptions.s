@@ -95,15 +95,7 @@
     b       panic_unhandled_exc
 .endm
 
-.macro setup_stack
-    msr	    tpidr_el1, x0
-    ldr     x0, =_start
-    mov     sp, x0
-    mrs     x0, tpidr_el1
-.endm
-
 .macro exc_handle_el0 num, handler
-    setup_stack
     save_el0_state
     run_el0_handler \num, \handler
 .endm
@@ -171,7 +163,6 @@ serror_el1h:    // SError, EL1h
 // EL0, 64 bit
 sync_el0_64:    // Synchronous, EL0 (64 bit)
     disable_irqs
-    setup_stack
     save_el0_state
     // is it a syscall?
     // note: don't touch x0-x7, they are parameters for our syscall.

@@ -40,8 +40,10 @@
 .endm
 
 el0_drop:
-	mov    x1, #0b00000
-    msr    spsr_el1, x1
+    mov     x1, #0b0000
+    msr     spsr_el1, x1
+    ldr     x30, =_start
+    mov     sp, x30
 	restore_state
-    msr    daifclr, #2 // enable IRQs
+    msr     daifclr, #2 // enable IRQs
 	eret

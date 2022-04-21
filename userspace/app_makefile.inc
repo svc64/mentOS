@@ -1,4 +1,3 @@
-APP_NAME = shell
 BUILD_DIR := ./build/
 OUT_DIR := ./out/
 LD_SCRIPT = ../../link.ld
