@@ -118,6 +118,10 @@
     msr    daifset, #2
 .endm
 
+.macro enable_irqs
+    msr    daifclr, #2
+.endm
+
 .align 11
 .global exception_vectors
 exception_vectors:
@@ -170,7 +174,7 @@ sync_el0_64:    // Synchronous, EL0 (64 bit)
     lsr	    x18, x17, #26 // shift ESR to get the EC
     cmp     x18, #0b010101 // EC_SVC64
     b.eq    syscall_handler
-handle_el0_sync: // TODO: fix this. handle other cases of el0 syncq
+handle_el0_sync: // TODO: fix this. handle other cases of el0 sync
     disable_irqs
     run_el0_handler 8, el0_sync_handler
 irq_el0_64:     // IRQ, EL0 (64 bit)
@@ -218,7 +222,7 @@ ret_from_syscall:
     mov    x1, #0b00000
     msr    spsr_el1, x1
     restore_state
-    msr    daifclr, #2 // enable IRQs
+    enable_irqs
     eret
 has_retval:
     cmp x17, 32
