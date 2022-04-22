@@ -44,15 +44,11 @@
     stp     x5, x6, [sp, #-16]!
     stp     x3, x4, [sp, #-16]!
     stp     x1, x2, [sp, #-16]!
-    mrs     x1, spsr_el1 // save spsr
-    stp     x1, x0, [sp, #-16]!
+    stp     xzr, x0, [sp, #-16]!
 .endm
 
 .macro restore_state
     // restore x2 and x1 for sp and elr, x30 too because it's next to x2
-    ldr     x1, [x18]
-    add     x18, x18, 8
-    msr     spsr_el1, x1
     ldp     x30, x2, [x18, #16 * 15]
     ldr     x1, [x18, #16 * 16]
     msr     sp_el0, x2
@@ -222,20 +218,23 @@ syscall_handler:
     // x18 = syscall pointer
     // x19 = return size
     blr     x18
-    // point x18 to the saved state
+    // point x18 to the saved x0 register
     mov     x18, sp
+    add     x18, x18, 8 // x18 = &x0
     # we have to check if the return value exists and if it's in w0 (32 bit) or x0 (64 bit)
     cmp     x19, 0
     b.ne    has_retval
 ret_from_syscall:
+    mov    x1, #0b00000
+    msr    spsr_el1, x1
     restore_state
     eret
 has_retval:
     cmp x19, 32
     b.ne ret64
 ret32:
-    str w0, [x18, #8]
+    str w0, [x18]
     b ret_from_syscall
 ret64:
-    str x0, [x18, #8]
+    str x0, [x18]
     b ret_from_syscall
