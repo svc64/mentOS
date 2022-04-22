@@ -5,10 +5,11 @@
 #define MAX_PROC    1024    // Maximum processes
 #define PROC_TIME   200000  // The time we give to processes until we switch (for now).
 struct __attribute__((__packed__)) arm64_thread_state {
-    uintptr_t x[31];
+    __uint128_t q[32];
+    uintptr_t spsr;
     uintptr_t sp;
     uintptr_t pc;
-    __uint128_t q[32];
+    uintptr_t x[31];
 };
 struct proc {
     void *executable;
