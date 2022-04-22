@@ -43,6 +43,7 @@ int proc_new() {
             }
             bzero(proc_list[i]->stack, PAGE_SIZE + STACK_SIZE);
             proc_list[i]->state.sp = (((uintptr_t)proc_list[i]->stack + PAGE_SIZE) & -PAGE_SIZE) + STACK_SIZE;
+            proc_list[i]->state.spsr = 0;
             return proc_list[i]->pid;
         }
     }

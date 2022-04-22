@@ -1,6 +1,9 @@
 .global el0_drop
 
 .macro restore_state
+    ldr     x1, [x0]
+    add     x0, x0, 8
+    msr     spsr_el1, x1
     ldp     x30, x2, [x0, #16 * 15]
     ldr     x1, [x0, #16 * 16]
     msr     sp_el0, x2
