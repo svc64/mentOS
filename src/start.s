@@ -45,7 +45,7 @@ el3_to_el1:
     orr     x0, x0, #(1 << 10) // all lower ELs are 64 bit
     msr     scr_el3, x0
 
-    mov     x0, #0b100 // EL1t
+    mov     x0, #0b101 // EL1h
     msr     spsr_el3, x0
 
     // set elr_el3 to where we drop to el1
@@ -66,7 +66,7 @@ el2_to_el1:
     msr     hcr_el2, x0
     mrs     x0, hcr_el2
 
-    mov     x2, #0x3c4
+    mov     x2, #0x3c5
     msr     spsr_el2, x2
 
     // set elr_el3 to where we drop to el1

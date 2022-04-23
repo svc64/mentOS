@@ -19,7 +19,7 @@
     ldp     q30, q31, [x30], #32
     ldp     x1, x0, [x30], #16 // x1 = spsr, x0 = sp
     msr     spsr_el1, x1
-    mov     sp, x0
+    msr     sp_el0, x0
     ldp     x1, x0, [x30], #16 // restore x0 and pc
     msr     elr_el1, x1
     // load the rest
@@ -42,10 +42,8 @@
 
 el0_drop:
     mov     x30, x0
-    msr     spsel, 1 // use SP_EL1 as SP
     // set exception stack
     ldr     x29, =_start
     mov     sp, x29
-    msr     spsel, 0 // use SP_EL0 as SP
 	restore_el0_state_x30
 	eret
