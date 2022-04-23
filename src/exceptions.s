@@ -14,7 +14,6 @@
 
 .macro run_el0_handler num, handler
     mov     x0, sp
-    add     x0, x0, #0x310 // x0 = pointer to state
     mov     x1, \num
     mrs     x2, esr_el1
     bl      \handler
