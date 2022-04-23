@@ -9,11 +9,11 @@ void handle_irq(struct arm64_thread_state *thread_state, int exc) {
     uint32_t irq = mmio_read(IRQ_PENDING_1);
     switch (irq) {
         case SYSTEM_TIMER_IRQ_1:
-            if (exc == EXC_IRQ_EL0_64) {
+            if (exc == EXC_IRQ_EL0_64 || exc == EXC_IRQ_EL1h) {
                 timer_irq_handled();
                 proc_exit(thread_state);
             } else {
-                print("got a timer IRQ while not in EL0... bug? ignoring. exception: %s\n", exc_str(exc));
+                print("got a timer IRQ for the wrong exception... bug? ignoring. exception: %s\n", exc_str(exc));
                 timer_irq_handled();
             }
             break;

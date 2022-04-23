@@ -69,7 +69,7 @@ void main() {
     if (pid < 0) {
         panic("failed to run shell!");
     }
-    int test2_pid = proc_new_executable("/test2");
+    int test2_pid = proc_new_executable("/2test");
     if (test2_pid < 0) {
         panic("failed to run test2 app!");
     }

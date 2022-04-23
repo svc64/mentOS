@@ -6,7 +6,7 @@
 #define PROC_TIME   200000  // The time we give to processes until we switch (for now).
 struct __attribute__((__packed__)) arm64_thread_state {
     __uint128_t q[32];
-    uintptr_t spsr;
+    uintptr_t cpsr;
     uintptr_t sp;
     uintptr_t pc;
     uintptr_t x[31];
@@ -14,6 +14,7 @@ struct __attribute__((__packed__)) arm64_thread_state {
 struct proc {
     void *executable;
     void *stack;
+    void *exception_stack;
     struct arm64_thread_state state;
     unsigned int pid;
 };
@@ -30,7 +31,9 @@ int proc_new_func(uintptr_t pc);
 void proc_enter(int pid, unsigned int time);
 void proc_kill(unsigned int pid, unsigned int signal);
 void proc_exit(struct arm64_thread_state *state);
-void el0_drop(struct arm64_thread_state *);
+void proc_state_drop(struct arm64_thread_state *, void *exception_stack);
+void enter_critical_section();
+void exit_critical_section();
 
 // the current process
 extern struct proc *current_proc;

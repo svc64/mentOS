@@ -1,2 +1,2 @@
-APP_NAME = test2
+APP_NAME = 2test
 include ../../app_makefile.inc

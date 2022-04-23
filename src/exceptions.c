@@ -3,6 +3,7 @@
 #include "exceptions.h"
 #include "print.h"
 #include "proc.h"
+#include "irq.h"
 
 // exception number to string
 const char *exc_str(int exc) {
@@ -49,11 +50,13 @@ const char *exc_str(int exc) {
     }
 }
 
-void el0_sync_handler(struct arm64_thread_state *state, int exc, uint64_t elr) {
+void el0_sync_handler(struct arm64_thread_state *state, int exc, uint64_t esr) {
+    print("ESR: 0x%x\n", esr);
     panic("oops, program crashed. we don't handle this currently\n");
 }
 
 void panic_unhandled_exc(int exception_type) {
+    disable_irqs();
     uint64_t pc;
     __asm__ __volatile__("mrs %0, elr_el1\n\t" : "=r" (pc) :  : "memory");
     print("PANIC:\nUnhandled exception: %s\n", exc_str(exception_type));
@@ -62,6 +65,7 @@ void panic_unhandled_exc(int exception_type) {
 }
 
 void panic(const char *panic_msg) {
+    disable_irqs();
     print("PANIC: %s\n", panic_msg);
     while (1);
 }

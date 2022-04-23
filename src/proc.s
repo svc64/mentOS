@@ -1,6 +1,6 @@
-.global el0_drop
+.global proc_state_drop
 
-.macro restore_el0_state_x30 // restore state from x30
+.macro restore_state_x30 // restore state from x30
     ldp     q0, q1, [x30], #32
     ldp     q2, q3, [x30], #32
     ldp     q4, q5, [x30], #32
@@ -19,7 +19,8 @@
     ldp     q30, q31, [x30], #32
     ldp     x1, x0, [x30], #16 // x1 = spsr, x0 = sp
     msr     spsr_el1, x1
-    msr     sp_el0, x0
+    msr     spsel, x1 // select the right sp
+    mov     sp, x0
     ldp     x1, x0, [x30], #16 // restore x0 and pc
     msr     elr_el1, x1
     // load the rest
@@ -40,10 +41,12 @@
     ldp     x29, x30, [x30]
 .endm
 
-el0_drop:
+proc_state_drop:
     mov     x30, x0
     // set exception stack
-    ldr     x29, =_start
-    mov     sp, x29
-	restore_el0_state_x30
+    msr     tpidr_el1, x1
+    msr     spsel, 1
+    mov     sp, x1
+    // restore state and bye
+	restore_state_x30
 	eret

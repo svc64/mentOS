@@ -8,6 +8,7 @@
 #include "signal.h"
 #include "syscalls/files.h"
 #include "errors.h"
+#include "irq.h"
 
 struct proc **proc_list = NULL;
 struct proc *current_proc = NULL;
@@ -35,15 +36,22 @@ int proc_new() {
             }
             bzero(proc_list[i], sizeof(struct proc));
             proc_list[i]->pid = i;
-            proc_list[i]->stack = malloc(PAGE_SIZE + STACK_SIZE);
+            proc_list[i]->stack = malloc_aligned(STACK_SIZE, PAGE_SIZE);
             if (proc_list[i]->stack == NULL) {
                 print("proc_new: failed to allocate stack!\n");
                 free(proc_list[i]);
                 return E_NOMEM;
             }
-            bzero(proc_list[i]->stack, PAGE_SIZE + STACK_SIZE);
-            proc_list[i]->state.sp = (((uintptr_t)proc_list[i]->stack + PAGE_SIZE) & -PAGE_SIZE) + STACK_SIZE;
-            proc_list[i]->state.spsr = 0; // EL0
+            bzero(proc_list[i]->stack, STACK_SIZE);
+            proc_list[i]->exception_stack = malloc_aligned(STACK_SIZE, PAGE_SIZE);
+            if (proc_list[i]->exception_stack == NULL) {
+                print("proc_new: failed to allocate exception stack!\n");
+                free(proc_list[i]);
+                return E_NOMEM;
+            }
+            bzero(proc_list[i]->exception_stack, STACK_SIZE);
+            proc_list[i]->state.sp = (uintptr_t)proc_list[i]->stack + STACK_SIZE;
+            proc_list[i]->state.cpsr = 0; // EL0
             return proc_list[i]->pid;
         }
     }
@@ -73,9 +81,8 @@ int proc_new_executable(const char *path) {
         close_syscall(fd);
         return -1;
     }
-    uintptr_t executable_mem = malloc(PAGE_SIZE + file_size);
-    uintptr_t executable_start = (executable_mem + PAGE_SIZE) & -PAGE_SIZE;
-    ssize_t size_read = read_syscall(fd, executable_start, file_size);
+    uintptr_t executable_mem = (uintptr_t)malloc_aligned(file_size, PAGE_SIZE);
+    ssize_t size_read = read_syscall(fd, executable_mem, file_size);
     if (size_read < 0) {
         close_syscall(fd);
         return size_read;
@@ -86,13 +93,13 @@ int proc_new_executable(const char *path) {
         return E_IOERR;
     }
     close_syscall(fd);
-    struct mentos_executable *exec = (struct mentos_executable *)executable_start;
+    struct mentos_executable *exec = (struct mentos_executable *)executable_mem;
     if (exec->magic != EXECUTABLE_MAGIC) {
         print("incorrect executable magic: 0x%x\n", exec->magic);
         return E_FORMAT;
     }
-    uintptr_t pc = executable_start + exec->entry_offset;
-    if (pc >= executable_start + file_size) {
+    uintptr_t pc = executable_mem + exec->entry_offset;
+    if (pc >= executable_mem + file_size) {
         print("entry point offset out of bounds in %s\n", path);
         return E_OOB;
     }
@@ -111,7 +118,7 @@ int proc_new_executable(const char *path) {
 void proc_enter(int pid, unsigned int time) {
     current_proc = proc_list[pid];
     timer_irq_after(time);
-    el0_drop(&(current_proc->state));
+    proc_state_drop(&(current_proc->state), current_proc->exception_stack);
 }
 
 // kill proc `pid` with `signal`
@@ -149,6 +156,7 @@ void proc_kill(unsigned int pid, unsigned int signal) {
 
 // process tried doing an invalid syscall, kill it
 void kill_invalid_syscall() {
+    disable_irqs();
     proc_kill(current_proc->pid, SIGSYS);
     proc_exit(NULL); // move on
 }
@@ -170,4 +178,22 @@ void proc_exit(struct arm64_thread_state *state) {
     }
     // if we get here. no proc is running. terrible news.
     panic("no processes running!");
+}
+
+/* run this when we're in a syscall and the scheduler must not
+move to another process (file operations, etc) */
+unsigned int critical_sections = 0;
+void enter_critical_section() {
+    if (!critical_sections) {
+        disable_irqs();
+    }
+    critical_sections++;
+}
+
+// run when we're done doing critical stuff and can move on
+void exit_critical_section() {
+    critical_sections--;
+    if (!critical_sections) {
+        enable_irqs();
+    }
 }

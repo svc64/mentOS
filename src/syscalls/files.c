@@ -20,6 +20,7 @@ int open_syscall(char *path, int mode) {
         fatfs_mode |= FA_CREATE_NEW;
     }
     int fd = -1;
+    enter_critical_section();
     for (int i = 0; i < MAX_DESCRIPTORS; i++) {
         if (fds[i] == NULL) {
             fd = i;
@@ -27,14 +28,17 @@ int open_syscall(char *path, int mode) {
         }
     }
     if (fd == -1) {
+        exit_critical_section();
         return E_LIMIT; // max FDs reached
     }
     fds[fd] = malloc(sizeof(struct fd));
     if (fds[fd] == NULL) {
+        exit_critical_section();
         return E_NOMEM;
     }
     fds[fd]->f = malloc(sizeof(FIL));
     if (fds[fd]->f == NULL) {
+        exit_critical_section();
         return E_NOMEM;
     }
     FRESULT res = f_open(fds[fd]->f, path, fatfs_mode);
@@ -42,6 +46,7 @@ int open_syscall(char *path, int mode) {
         free(fds[fd]->f);
         free(fds[fd]);
         fds[fd] = NULL;
+        exit_critical_section();
         switch (res)
         {
             case FR_NO_PATH:
@@ -60,17 +65,22 @@ int open_syscall(char *path, int mode) {
         }
     }
     fds[fd]->proc = current_proc;
+    exit_critical_section();
     return fd;
 }
 
 int fd_valid(int fd) {
+    enter_critical_section();
     if (fd < 0 || fd >= MAX_DESCRIPTORS) {
-        print("fd invalid %d\n", fd);
+        return false;
+    }
+    if (fds[fd]->proc != current_proc) {
         return false;
     }
     if (fds[fd] == NULL) {
         return false;
     }
+    exit_critical_section();
     return true;
 }
 
@@ -102,11 +112,14 @@ ssize_t ftell_syscall(int fd) {
 }
 
 ssize_t write_syscall(int fd, void *buf, size_t count) {
+    enter_critical_section();
     UINT bytes_written = -1;
     if (!fd_valid(fd)) {
+        exit_critical_section();
         return E_INVALID_DESCRIPTOR;
     }
     FRESULT res = f_write(fds[fd]->f, buf, count, &bytes_written);
+    exit_critical_section();
     if (res) {
         switch (res)
         {
@@ -123,11 +136,13 @@ ssize_t write_syscall(int fd, void *buf, size_t count) {
 
 // should never fail when a file is opened for reading only
 int close_syscall(int fd) {
+    enter_critical_section();
     if (!fd_valid(fd)) {
         return E_INVALID_DESCRIPTOR;
     }
     FRESULT res = f_close(fds[fd]->f);
     if (res) {
+        exit_critical_section();
         switch (res)
         {
             case FR_DISK_ERR:
@@ -139,6 +154,7 @@ int close_syscall(int fd) {
     free(fds[fd]->f);
     free(fds[fd]);
     fds[fd] = NULL;
+    exit_critical_section();
     return 0;
 }
 
@@ -170,19 +186,24 @@ int lseek_syscall(int fd, uintptr_t where) {
 }
 
 int ftruncate_syscall(int fd, uintptr_t length) {
+    enter_critical_section();
     if (!fd_valid(fd)) {
+        exit_critical_section();
         return E_INVALID_DESCRIPTOR;
     }
     if (length > f_size(fds[fd]->f)) {
+        exit_critical_section();
         return E_OOB;
     }
     uintptr_t current_off = f_tell(fds[fd]->f);
     int ret = lseek_syscall(fd, length);
     if (ret) {
+        exit_critical_section();
         return ret;
     }
     FRESULT res = f_truncate(fds[fd]->f);
     if (res) {
+        exit_critical_section();
         switch (res)
         {
             case FR_DISK_ERR:
@@ -196,18 +217,22 @@ int ftruncate_syscall(int fd, uintptr_t length) {
     if (current_off > length) {
         int ret = lseek_syscall(fd, length);
         if (ret) {
+            exit_critical_section();
             return ret;
         }
     } else {
         int ret = lseek_syscall(fd, current_off);
         if (ret) {
+            exit_critical_section();
             return ret;
         }
     }
+    exit_critical_section();
     return 0;
 }
 
 int opendir_syscall(char *path) {
+    enter_critical_section();
     int dir = -1;
     for (int i = 0; i < MAX_DESCRIPTORS; i++) {
         if (dirs[i] == NULL) {
@@ -232,6 +257,7 @@ int opendir_syscall(char *path) {
         free(dirs[dir]->d);
         free(dirs[dir]);
         dirs[dir] = NULL;
+        exit_critical_section();
         switch (res)
         {
             case FR_NO_PATH:
@@ -246,10 +272,12 @@ int opendir_syscall(char *path) {
         }
     }
     dirs[dir]->proc = current_proc;
+    exit_critical_section();
     return dir;
 }
 
 int dir_valid(int dir) {
+    enter_critical_section();
     if (dir < 0 || dir >= MAX_DESCRIPTORS) {
         return false;
     }
@@ -259,6 +287,7 @@ int dir_valid(int dir) {
     if (dirs[dir]->proc != current_proc) {
         return false;
     }
+    exit_critical_section();
     return true;
 }
 
@@ -294,11 +323,13 @@ int read_dir_syscall(int dir, struct dirent *ent) {
 }
 
 int closedir_syscall(int dir) {
+    enter_critical_section();
     if (!dir_valid(dir)) {
         return E_INVALID_DESCRIPTOR;
     }
     FRESULT res = f_closedir(dirs[dir]->d);
     if (res) {
+        exit_critical_section();
         switch (res)
         {
             case FR_DISK_ERR:
@@ -310,11 +341,14 @@ int closedir_syscall(int dir) {
     free(dirs[dir]->d);
     free(dirs[dir]);
     dirs[dir] = NULL;
+    exit_critical_section();
     return 0;
 }
 
 int mkdir_syscall(char *path) {
+    enter_critical_section();
     FRESULT res = f_mkdir(path);
+    exit_critical_section();
     if (res) {
         switch (res)
         {
@@ -334,7 +368,9 @@ int mkdir_syscall(char *path) {
     return 0;
 }
 int unlink_syscall(char *path) {
+    enter_critical_section();
     FRESULT res = f_unlink(path);
+    exit_critical_section();
     if (res) {
         switch (res)
         {
@@ -355,7 +391,9 @@ int unlink_syscall(char *path) {
 }
 
 int rename_syscall(char *old_name, char *new_name) {
+    enter_critical_section();
     FRESULT res = f_rename(old_name, new_name);
+    exit_critical_section();
     if (res) {
         switch (res)
         {

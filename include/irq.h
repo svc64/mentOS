@@ -16,3 +16,4 @@
 #define SYSTEM_TIMER_IRQ_3  (1 << 3)
 
 void disable_irqs();
+void enable_irqs();
