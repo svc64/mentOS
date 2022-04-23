@@ -5,33 +5,54 @@
 #include "mmio.h"
 extern volatile unsigned char _end; // where our kernel image ends
 #define HEAP_END    MMIO_BASE
-#define ALIGNMENT   16 // align allocations by 16 bytes
 void *heap = (void *)(&_end); // actual heap with actual data
 struct metadata {
     size_t size;
     struct metadata *next;
     uint8_t free;
 };
-static uint8_t first = 1;
-void *malloc(size_t size) {
+struct metadata *first_alloc = NULL;
+void *malloc_aligned(size_t size, size_t alignment) {
     // it's the first allocation, there's nothing to walk over.
-    if (first) {
+    if (first_alloc == NULL) {
         uintptr_t md_ptr = (uintptr_t)heap;
         uint64_t data_ptr = md_ptr + sizeof(struct metadata);
-        if ((data_ptr & -ALIGNMENT) != data_ptr) {
-            data_ptr = (data_ptr + ALIGNMENT) & -ALIGNMENT;
+        if (alignment > 1 && (data_ptr & -alignment) != data_ptr) {
+            data_ptr = (data_ptr + alignment) & -alignment;
             md_ptr = data_ptr - sizeof(struct metadata);
-            heap = (void *)md_ptr;
         }
-        struct metadata *md = (struct metadata *)md_ptr;
-        md->free = 0;
-        md->size = size;
-        md->next = NULL;
-        first = 0;
-        return (void *)((uintptr_t)md + sizeof(struct metadata));
+        if ((data_ptr + size) <= HEAP_END) {
+            struct metadata *md = (struct metadata *)md_ptr;
+            md->free = 0;
+            md->size = size;
+            md->next = NULL;
+            first_alloc = md;
+            return (void *)((uintptr_t)md + sizeof(struct metadata));
+        }
+        return NULL; // heap too small
+    }
+    /* the first allocation is after the heap starts
+     see if we can allocate in this hole between the heap
+     and the first allocation */
+    if ((uintptr_t)first_alloc > (uintptr_t)heap) {
+        uintptr_t md_ptr = (uintptr_t)heap;
+        uintptr_t data_ptr = md_ptr + sizeof(struct metadata);
+        if (alignment > 1 && (data_ptr & -alignment) != data_ptr) {
+            data_ptr = (data_ptr + alignment) & -alignment;
+            md_ptr = data_ptr - sizeof(struct metadata);
+        }
+        if ((data_ptr + size) <= (uintptr_t)first_alloc) {
+            // we have space!
+            struct metadata *md = (struct metadata *)md_ptr;
+            md->free = 0;
+            md->size = size;
+            md->next = first_alloc;
+            first_alloc = md;
+            return (void *)data_ptr;
+        }
     }
     // walk over all allocations
-    struct metadata *md = heap;
+    struct metadata *md = first_alloc;
     struct metadata *prev_md = NULL;
     while (md != NULL) {
         prev_md = md;
@@ -40,8 +61,8 @@ void *malloc(size_t size) {
             /* we have a free'd allocation. does our size fit?
             if md is the first AND it's free'd AND has no next md, it means we have no allocations
             and can allocate there */
-            uint8_t no_allocations = (md == heap && md->next == NULL);
-            if (no_allocations && (uintptr_t)heap + sizeof(struct metadata) + size > HEAP_END) {
+            uint8_t no_allocations = (md == first_alloc && md->next == NULL);
+            if (no_allocations && (uintptr_t)first_alloc + sizeof(struct metadata) + size > HEAP_END) {
                 // no space
                 return NULL;
             }
@@ -63,8 +84,8 @@ void *malloc(size_t size) {
                     // check alignment
                     uintptr_t md_ptr = maybe_next;
                     uintptr_t data_ptr = md_ptr + sizeof(struct metadata);
-                    if ((data_ptr & -ALIGNMENT) != data_ptr) {
-                        data_ptr = (data_ptr + ALIGNMENT) & -ALIGNMENT;
+                    if (alignment > 1 && (data_ptr & -alignment) != data_ptr) {
+                        data_ptr = (data_ptr + alignment) & -alignment;
                         md_ptr = data_ptr - sizeof(struct metadata);
                     }
                     // size check
@@ -80,7 +101,6 @@ void *malloc(size_t size) {
                 }
             } else if (maybe_next > (uintptr_t)md->next) {
                 panic("memory allocated on heap metadata, that's bad...\n");
-                return NULL; // panic'd already, should never run
             }
         }
         // no hole.
@@ -89,8 +109,8 @@ void *malloc(size_t size) {
     // alright, there are no holes.
     uintptr_t new_md_ptr = (uintptr_t)prev_md + sizeof(struct metadata) + prev_md->size;
     uint64_t data_ptr = new_md_ptr + sizeof(struct metadata);
-    if ((data_ptr & -ALIGNMENT) != data_ptr) {
-        data_ptr = (data_ptr + ALIGNMENT) & -ALIGNMENT;
+    if (alignment > 1 && (data_ptr & -alignment) != data_ptr) {
+        data_ptr = (data_ptr + alignment) & -alignment;
         new_md_ptr = data_ptr - sizeof(struct metadata);
     }
     struct metadata *new_md = (struct metadata *)(new_md_ptr);
@@ -106,12 +126,16 @@ void *malloc(size_t size) {
     return (struct metadata *)(retval);
 }
 
+void *malloc(size_t size) {
+    return malloc_aligned(size, 0);
+}
+
 void free(void *mem) {
     struct metadata *md = (struct metadata *)((uintptr_t)mem - sizeof(struct metadata));
     // if md is not at the start of the heap, there is a previous md that links to it.
     // we should change that previous md to link to md->next
-    if (md != heap) {
-        struct metadata *prev_md = heap;
+    if (md != first_alloc) {
+        struct metadata *prev_md = first_alloc;
         while (prev_md->next != md) {
             prev_md = prev_md->next;
         }
@@ -119,6 +143,7 @@ void free(void *mem) {
     }
     md->free = 1;
 }
+
 // Get a memory page.
 /* The MMU mapping code needs page-aligned allocations to work.
 The MMU code also runs before we allocate anything using malloc.
@@ -127,7 +152,7 @@ the old value of the heap start to "allocate" a page for us.
 WARNING: This function panics if we ever used malloc. It's meant to be
 used only in early stages when we set up the MMU. */
 void *bump_page() {
-    if (!first) {
+    if (first_alloc != NULL) {
         panic("bump_page() called after the heap was used.");
     }
     void *retval = heap;
