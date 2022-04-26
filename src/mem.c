@@ -144,6 +144,51 @@ void free(void *mem) {
     md->free = 1;
 }
 
+void *realloc(void *ptr, size_t size) {
+    if (ptr == NULL) {
+        return malloc(size);
+    }
+    struct metadata *md = (struct metadata *)((uintptr_t)ptr - sizeof(struct metadata));
+    if (md->free) {
+        panic("attempting to reallocate free memory!\n");
+    }
+    if (!size) {
+        // free
+        free(ptr);
+        return NULL;
+    }
+    if (size == md->size) {
+        return ptr;
+    }
+    if (size < md->size) {
+        md->size = size;
+        return ptr;
+    }
+    size_t expandable_size = md->size; // size of free memory after the allocation, the size that we can expand the allocation to
+    struct metadata *current_md = md->next;
+    while (current_md != NULL && current_md->free) {
+        expandable_size += current_md->size + sizeof(struct metadata);
+        current_md = current_md->next;
+    }
+    if (current_md == NULL) {
+        // add the rest of the heap
+        expandable_size += HEAP_END - ((uintptr_t)ptr + expandable_size);
+    }
+    if (expandable_size <= size || (uintptr_t)ptr + size > HEAP_END) {
+        // re-allocate the memory at a new address
+        void *new_alloc = malloc(size);
+        if (new_alloc == NULL) {
+            return NULL;
+        }
+        memcpy(new_alloc, ptr, md->size);
+        free(ptr);
+        return new_alloc;
+    }
+    // great! we can just modify the size
+    md->size = size;
+    return ptr;
+}
+
 // Get a memory page.
 /* The MMU mapping code needs page-aligned allocations to work.
 The MMU code also runs before we allocate anything using malloc.
