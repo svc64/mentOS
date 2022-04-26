@@ -165,14 +165,11 @@ void *realloc(void *ptr, size_t size) {
         return ptr;
     }
     size_t expandable_size = md->size; // size of free memory after the allocation, the size that we can expand the allocation to
-    struct metadata *current_md = md->next;
-    while (current_md != NULL && current_md->free) {
-        expandable_size += current_md->size + sizeof(struct metadata);
-        current_md = current_md->next;
-    }
-    if (current_md == NULL) {
-        // add the rest of the heap
-        expandable_size += HEAP_END - ((uintptr_t)ptr + expandable_size);
+    if (md->next != NULL) {
+        // we should never actually have a situation where the next allocations are marked as free
+        expandable_size = (uintptr_t)md->next - (uintptr_t)ptr;
+    } else {
+        expandable_size = HEAP_END - (uintptr_t)ptr;
     }
     if (expandable_size <= size || (uintptr_t)ptr + size > HEAP_END) {
         // re-allocate the memory at a new address
