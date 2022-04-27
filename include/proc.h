@@ -3,7 +3,7 @@
 
 #define STACK_SIZE  524288  // 512KB
 #define MAX_PROC    1024    // Maximum processes
-#define PROC_TIME   200000  // The time we give to processes until we switch (for now).
+#define PROC_TIME   50000  // The time we give to processes until we switch (for now).
 struct __attribute__((__packed__)) arm64_thread_state {
     __uint128_t q[32];
     uintptr_t cpsr;
