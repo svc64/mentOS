@@ -9,7 +9,6 @@ void *heap = (void *)(&_end); // actual heap with actual data
 struct metadata {
     size_t size;
     struct metadata *next;
-    uint8_t free;
 };
 struct metadata *first_alloc = NULL;
 void *malloc_aligned(size_t size, size_t alignment) {
@@ -23,7 +22,6 @@ void *malloc_aligned(size_t size, size_t alignment) {
         }
         if ((data_ptr + size) <= HEAP_END) {
             struct metadata *md = (struct metadata *)md_ptr;
-            md->free = 0;
             md->size = size;
             md->next = NULL;
             first_alloc = md;
@@ -44,7 +42,6 @@ void *malloc_aligned(size_t size, size_t alignment) {
         if ((data_ptr + size) <= (uintptr_t)first_alloc) {
             // we have space!
             struct metadata *md = (struct metadata *)md_ptr;
-            md->free = 0;
             md->size = size;
             md->next = first_alloc;
             first_alloc = md;
@@ -56,23 +53,6 @@ void *malloc_aligned(size_t size, size_t alignment) {
     struct metadata *prev_md = NULL;
     while (md != NULL) {
         prev_md = md;
-        // check if it's free'd
-        if (md->free) {
-            /* we have a free'd allocation. does our size fit?
-            if md is the first AND it's free'd AND has no next md, it means we have no allocations
-            and can allocate there */
-            uint8_t no_allocations = (md == first_alloc && md->next == NULL);
-            if (no_allocations && (uintptr_t)first_alloc + sizeof(struct metadata) + size > HEAP_END) {
-                // no space
-                return NULL;
-            }
-            if (size <= md->size || no_allocations) {
-                // it's free real estate
-                md->size = size;
-                md->free = 0;
-                return (void *)((uintptr_t)md + sizeof(struct metadata));
-            }
-        }
         // detect a hole if we have one
         if (md->next != NULL) {
             uintptr_t maybe_next = (uintptr_t)md + sizeof(struct metadata) + md->size;
@@ -94,7 +74,6 @@ void *malloc_aligned(size_t size, size_t alignment) {
                         struct metadata *new_md = (struct metadata *)(md_ptr);
                         new_md->size = size;
                         new_md->next = md->next;
-                        new_md->free = 0;
                         md->next = new_md;
                         return (void *)((uintptr_t)new_md + sizeof(struct metadata));
                     }
@@ -118,7 +97,6 @@ void *malloc_aligned(size_t size, size_t alignment) {
         // no space
         return NULL;
     }
-    new_md->free = 0;
     new_md->size = size;
     new_md->next = NULL;
     prev_md->next = new_md;
@@ -132,16 +110,17 @@ void *malloc(size_t size) {
 
 void free(void *mem) {
     struct metadata *md = (struct metadata *)((uintptr_t)mem - sizeof(struct metadata));
-    // if md is not at the start of the heap, there is a previous md that links to it.
-    // we should change that previous md to link to md->next
-    if (md != first_alloc) {
+    /* if md is not at the start of the heap, there is a previous md that links to it.
+    we should change that previous md to link to md->next */
+    if (md == first_alloc) {
+        first_alloc = first_alloc->next;
+    } else {
         struct metadata *prev_md = first_alloc;
         while (prev_md->next != md) {
             prev_md = prev_md->next;
         }
         prev_md->next = md->next;
     }
-    md->free = 1;
 }
 
 void *realloc(void *ptr, size_t size) {
@@ -149,9 +128,6 @@ void *realloc(void *ptr, size_t size) {
         return malloc(size);
     }
     struct metadata *md = (struct metadata *)((uintptr_t)ptr - sizeof(struct metadata));
-    if (md->free) {
-        panic("attempting to reallocate free memory!\n");
-    }
     if (!size) {
         // free
         free(ptr);
