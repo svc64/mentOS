@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdbool.h>
 #include "exceptions.h"
 #include "mem.h"
 #include "print.h"
@@ -9,6 +10,7 @@ void *heap = (void *)(&_end); // actual heap with actual data
 struct metadata {
     size_t size;
     struct metadata *next;
+    uint8_t free;
 };
 struct metadata *first_alloc = NULL;
 void *malloc_aligned(size_t size, size_t alignment) {
@@ -22,6 +24,7 @@ void *malloc_aligned(size_t size, size_t alignment) {
         }
         if ((data_ptr + size) <= HEAP_END) {
             struct metadata *md = (struct metadata *)md_ptr;
+            md->free = false;
             md->size = size;
             md->next = NULL;
             first_alloc = md;
@@ -42,6 +45,7 @@ void *malloc_aligned(size_t size, size_t alignment) {
         if ((data_ptr + size) <= (uintptr_t)first_alloc) {
             // we have space!
             struct metadata *md = (struct metadata *)md_ptr;
+            md->free = false;
             md->size = size;
             md->next = first_alloc;
             first_alloc = md;
@@ -74,6 +78,7 @@ void *malloc_aligned(size_t size, size_t alignment) {
                         struct metadata *new_md = (struct metadata *)(md_ptr);
                         new_md->size = size;
                         new_md->next = md->next;
+                        new_md->free = false;
                         md->next = new_md;
                         return (void *)((uintptr_t)new_md + sizeof(struct metadata));
                     }
@@ -97,6 +102,7 @@ void *malloc_aligned(size_t size, size_t alignment) {
         // no space
         return NULL;
     }
+    new_md->free = false;
     new_md->size = size;
     new_md->next = NULL;
     prev_md->next = new_md;
@@ -121,6 +127,7 @@ void free(void *mem) {
         }
         prev_md->next = md->next;
     }
+    md->free = true;
 }
 
 void *realloc(void *ptr, size_t size) {
@@ -128,6 +135,9 @@ void *realloc(void *ptr, size_t size) {
         return malloc(size);
     }
     struct metadata *md = (struct metadata *)((uintptr_t)ptr - sizeof(struct metadata));
+    if (md->free) {
+        panic("attempting to reallocate free memory!\n");
+    }
     if (!size) {
         // free
         free(ptr);
