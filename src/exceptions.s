@@ -257,7 +257,7 @@ syscall_handler:
     // point x18 to the saved x0 register
     mov     x18, sp
     add     x18, x18, 536 // x18 = &x0
-    # we have to check if the return value exists and if it's in w0 (32 bit) or x0 (64 bit)
+    // we have to check if the return value exists and if it's in w0 (32 bit) or x0 (64 bit)
     cmp     x19, 0
     b.ne    has_retval
 ret_from_syscall:
