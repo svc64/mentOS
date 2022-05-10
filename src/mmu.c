@@ -41,6 +41,9 @@ int address_length;
 int upper_addr_bits;
 int level_bits;
 int levels_count;
+// constants for map_region
+int entries_per_level;
+size_t max_L_size;
 
 uintptr_t *first_level_table = NULL;
 #define BITS(___src, ___start, ___end) \
@@ -69,22 +72,19 @@ unsigned int size_in_bits(uintptr_t n) {
     return count;
 }
 
-void map_region(uintptr_t start, uintptr_t end, uintptr_t attribs) {
-    int entries_per_level = PAGE_SIZE / 8;
-    size_t max_L_size = PAGE_SIZE;
-    for (int i = 0; i < levels_count - 1; i++) {
-        max_L_size *= entries_per_level;
-    }
-    uintptr_t current_addr = start;
-    while (current_addr < end) {
+void map_region(uintptr_t virt, uintptr_t phys_start, uintptr_t phys_end, uintptr_t block_attribs) {
+    uintptr_t current_virt = virt;
+    uintptr_t current_phys = phys_start;
+    uintptr_t virt_end = phys_end - phys_start + virt;
+    while (current_virt < virt_end) {
         int current_level = 1;
         for (size_t L_size = max_L_size; L_size >= PAGE_SIZE; L_size /= entries_per_level) {
-            if (!(current_addr % L_size) && ((end - current_addr) / L_size)) {
+            if (!(current_virt % L_size) && ((virt_end - current_virt) / L_size)) {
                 /* make an array of level indexes for this address
                 levels[0] is L1 index, levels[1] is L2 index and so on... */
                 int levels[current_level];
                 for (int i = current_level - 1; i >= 0; i--) {
-                    uintptr_t li = L_index(i + 1, current_addr);
+                    uintptr_t li = L_index(i + 1, current_virt);
                     levels[i] = li;
                 }
                 if (first_level_table == NULL) {
@@ -102,15 +102,16 @@ void map_region(uintptr_t start, uintptr_t end, uintptr_t attribs) {
                     }
                     L = strip_table_entry(L[levels[i]]);
                 }
-                uintptr_t entry = current_addr | attribs;
+                uintptr_t entry = current_phys | block_attribs;
                 if (current_level != levels_count) {
                     entry |= PT_BLOCK;
                 } else {
                     entry |= PT_PAGE;
                 }
-                int index = L_index(current_level, current_addr);
+                int index = L_index(current_level, current_virt);
                 L[index] = entry;
-                current_addr += L_size;
+                current_virt += L_size;
+                current_phys += L_size;
                 break;
             }
             current_level++;
@@ -131,26 +132,32 @@ void init_mmu() {
     level_bits = size_in_bits((PAGE_SIZE / 8) - 1);
     // Calculate the number of levels (3 or 4)
     levels_count = upper_addr_bits / level_bits + (upper_addr_bits % level_bits ? 1 : 0);
+    /* calculate the number of entries per level and the size of the block
+    that the first level can point to */
+    entries_per_level = PAGE_SIZE / 8;
+    max_L_size = PAGE_SIZE;
+    for (int i = 0; i < levels_count - 1; i++) {
+        max_L_size *= entries_per_level;
+    }
     uintptr_t mem_start = 0x0;
     uintptr_t code_start = 0x80000;
     uintptr_t code_end = ((uintptr_t)(&_data));
     uintptr_t mem_end = 0x40000000;
-    map_region(mem_start, code_start, PT_AF | PT_USER | PT_ISH | PT_MEM | PT_RW);
-    map_region(code_start, code_end, PT_AF | PT_USER | PT_ISH | PT_MEM | PT_RO);
-    map_region(code_end, MMIO_BASE, PT_AF | PT_USER | PT_ISH | PT_MEM | PT_RW);
-    map_region(MMIO_BASE, mem_end, PT_AF | PT_USER | PT_OSH | PT_DEV | PT_RW);
+    map_region(mem_start, mem_start, code_start, PT_AF | PT_USER | PT_ISH | PT_MEM | PT_RW);
+    map_region(code_start, code_start, code_end, PT_AF | PT_USER | PT_ISH | PT_MEM | PT_RO);
+    map_region(code_end, code_end, MMIO_BASE, PT_AF | PT_USER | PT_ISH | PT_MEM | PT_RW);
+    map_region(MMIO_BASE, MMIO_BASE, mem_end, PT_AF | PT_USER | PT_OSH | PT_DEV | PT_RW);
+    // Set TTBR0_EL1 to where our translation tables are
+    asm volatile ("msr ttbr0_el1, %0" : : "r" ((uintptr_t)first_level_table + TTBR_CNP));
     // Set MAIR with our memory attributes indexed in the right places
     uint64_t reg = MAIR_ATTRIDX(MAIR_ATTR_NORMAL, PT_MEM) |
                     MAIR_ATTRIDX(MAIR_ATTR_DEVICE_nGnRE, PT_DEV) |
                     MAIR_ATTRIDX(MAIR_ATTR_NORMAL_NC, PT_NC);
     asm volatile ("msr mair_el1, %0" : : "r" (reg));
     // Configure TCR_EL1
-    reg = TCR_IPS(PARange_36) | TCR_TG1_4K | TCR_SH1_INNER | TCR_ORGN1_WBWA | TCR_IRGN1_WBWA |
-    TCR_EPD1_MASK | TCR_TG0_4K | TCR_SH0_INNER | TCR_ORGN0_WBWA | TCR_IRGN1_WBWA | 
-    TCR_TxSZ(address_length);
+    reg = TCR_IPS(PARange_36) | TCR_TG1_4K | TCR_SH1_INNER | TCR_ORGN1_WBWA
+    | TCR_TG0_4K | TCR_SH0_INNER | TCR_ORGN0_WBWA | TCR_EPD1_MASK | TCR_TxSZ(address_length);
     asm volatile ("msr tcr_el1, %0; isb" : : "r" (reg));
-    // Set TTBR0_EL1 to where our translation tables are
-    asm volatile ("msr ttbr0_el1, %0" : : "r" ((uintptr_t)first_level_table + TTBR_CNP));
     // Enable the MMU
     asm volatile ("dsb ish; isb; mrs %0, sctlr_el1" : "=r" (reg));
     reg &= ~SCTLR_ELx_A; // Disable alignment check
