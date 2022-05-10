@@ -46,14 +46,10 @@ int entries_per_level;
 size_t max_L_size;
 
 uintptr_t *first_level_table = NULL;
-#define BITS(___src, ___start, ___end) \
-(((1 << ((___end) - (___start))) - 1) & ((___src) >> ((___start) - 1)))
-#define ___extract_L_bits(___addr, ___start) \
-BITS((___addr), (___start), (___start) + (level_bits))
-#define L_index(___level, ___addr) \
-___extract_L_bits((___addr), ((address_length - upper_addr_bits) + ((levels_count - (___level)) * level_bits) + 1))
-#define strip_table_entry(___entry) \
-((((___entry) << (64 - address_length)) >> (64 - address_length)) & -PAGE_SIZE)
+#define BITS(___src, ___start, ___end) (((1 << ((___end) - (___start))) - 1) & ((___src) >> ((___start) - 1)))
+#define ___extract_L_bits(___addr, ___start) BITS((___addr), (___start), (___start) + (level_bits))
+#define L_index(___level, ___addr) ___extract_L_bits((___addr), ((address_length - upper_addr_bits) + ((levels_count - (___level)) * level_bits) + 1))
+#define strip_table_entry(___entry) ((((___entry) << (64 - address_length)) >> (64 - address_length)) & -PAGE_SIZE)
 
 // bump_page() and bzero
 void *mmu_table_alloc() {
