@@ -18,8 +18,6 @@
 
 #define TTBR_CNP    1
 
-#define TABLE_POINTER_ATTRIBS (PT_PAGE | PT_AF | PT_USER | PT_ISH | PT_MEM)
-
 // id_aa64mmfr0_el1 PARange (bits 0-3) values
 #define PARange_32 0b0000LL
 #define PARange_36 0b0001LL
