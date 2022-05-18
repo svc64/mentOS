@@ -65,22 +65,24 @@ unsigned int size_in_bits(uintptr_t n) {
     return count;
 }
 
-void map_region(uintptr_t start, uintptr_t end, uintptr_t attribs) {
+void map_region(uintptr_t virt, uintptr_t phys_addr, size_t size, uintptr_t attribs) {
     int entries_per_level = PAGE_SIZE / 8;
     size_t max_L_size = PAGE_SIZE;
     for (int i = 0; i < levels_count - 1; i++) {
         max_L_size *= entries_per_level;
     }
-    uintptr_t current_addr = start;
-    while (current_addr < end) {
+    virt = virt &~ ((0xffffffffffffffff >> address_length) << address_length);
+    uintptr_t virt_end = virt + size;
+    uintptr_t current_virt = virt;
+    while (current_virt < virt_end) {
         int current_level = 1;
         for (size_t L_size = max_L_size; L_size >= PAGE_SIZE; L_size /= entries_per_level) {
-            if (!(current_addr % L_size) && ((end - current_addr) / L_size)) {
+            if (!(current_virt % L_size) && ((virt_end - current_virt) / L_size)) {
                 /* make an array of level indexes for this address
                 levels[0] is L1 index, levels[1] is L2 index and so on... */
                 int levels[current_level];
                 for (int i = current_level - 1; i >= 0; i--) {
-                    uintptr_t li = L_index(i + 1, current_addr);
+                    uintptr_t li = L_index(i + 1, current_virt);
                     levels[i] = li;
                 }
                 if (first_level_table == NULL) {
@@ -98,15 +100,16 @@ void map_region(uintptr_t start, uintptr_t end, uintptr_t attribs) {
                     }
                     L = strip_table_entry(L[levels[i]]);
                 }
-                uintptr_t entry = current_addr | attribs;
+                uintptr_t entry = phys_addr | attribs;
                 if (current_level != levels_count) {
                     entry |= PT_BLOCK;
                 } else {
                     entry |= PT_PAGE;
                 }
-                int index = L_index(current_level, current_addr);
+                int index = L_index(current_level, current_virt);
                 L[index] = entry;
-                current_addr += L_size;
+                phys_addr += L_size;
+                current_virt += L_size;
                 break;
             }
             current_level++;
@@ -131,10 +134,10 @@ void init_mmu() {
     uintptr_t code_start = 0x80000;
     uintptr_t code_end = ((uintptr_t)(&_data));
     uintptr_t mem_end = 0x40000000;
-    map_region(mem_start, code_start, PT_AF | PT_USER | PT_ISH | PT_MEM | PT_RW);
-    map_region(code_start, code_end, PT_AF | PT_USER | PT_ISH | PT_MEM | PT_RO);
-    map_region(code_end, MMIO_BASE, PT_AF | PT_USER | PT_ISH | PT_MEM | PT_RW);
-    map_region(MMIO_BASE, mem_end, PT_AF | PT_USER | PT_OSH | PT_DEV | PT_RW);
+    map_region(mem_start, mem_start, (code_start - mem_start), PT_AF | PT_USER | PT_ISH | PT_MEM | PT_RW);
+    map_region(code_start, code_start, (code_end - code_start), PT_AF | PT_USER | PT_ISH | PT_MEM | PT_RO);
+    map_region(code_end, code_end, (MMIO_BASE - code_end), PT_AF | PT_USER | PT_ISH | PT_MEM | PT_RW);
+    map_region(MMIO_BASE, MMIO_BASE, (mem_end - MMIO_BASE), PT_AF | PT_USER | PT_OSH | PT_DEV | PT_RW);
     // Set MAIR with our memory attributes indexed in the right places
     uint64_t reg = MAIR_ATTRIDX(MAIR_ATTR_NORMAL, PT_MEM) |
                     MAIR_ATTRIDX(MAIR_ATTR_DEVICE_nGnRE, PT_DEV) |
