@@ -45,6 +45,7 @@ int levels_count;
 int entries_per_level;
 size_t max_L_size;
 
+uintptr_t *first_level_table = NULL;
 #define BITS(___src, ___start, ___end) (((1 << ((___end) - (___start))) - 1) & ((___src) >> ((___start) - 1)))
 #define ___extract_L_bits(___addr, ___start) BITS((___addr), (___start), (___start) + (level_bits))
 #define L_index(___level, ___addr) ___extract_L_bits((___addr), ((address_length - upper_addr_bits) + ((levels_count - (___level)) * level_bits) + 1))
@@ -67,8 +68,8 @@ unsigned int size_in_bits(uintptr_t n) {
     return count;
 }
 
-void map_region(uintptr_t *first_level_table, uintptr_t virt, uintptr_t phys_start, uintptr_t phys_end, uintptr_t block_attribs) {
-    uintptr_t current_virt = virt &~ ((0xffffffffffffffff >> address_length) << address_length);
+void map_region(uintptr_t virt, uintptr_t phys_start, uintptr_t phys_end, uintptr_t block_attribs) {
+    uintptr_t current_virt = virt;
     uintptr_t current_phys = phys_start;
     uintptr_t virt_end = phys_end - phys_start + virt;
     while (current_virt < virt_end) {
@@ -82,6 +83,9 @@ void map_region(uintptr_t *first_level_table, uintptr_t virt, uintptr_t phys_sta
                     uintptr_t li = L_index(i + 1, current_virt);
                     levels[i] = li;
                 }
+                if (first_level_table == NULL) {
+                    first_level_table = mmu_table_alloc();
+                }
                 uintptr_t *L = first_level_table;
                 /* This loop walks over the entire table and gets us
                 to the level where we need to place our mapping.
@@ -89,7 +93,7 @@ void map_region(uintptr_t *first_level_table, uintptr_t virt, uintptr_t phys_sta
                 for (int i = 0; i < current_level - 1; i++) {
                     if (L[levels[i]] == 0) {
                         uintptr_t allocated = (uintptr_t)mmu_table_alloc();
-                        uintptr_t entry = allocated | PT_PAGE | PT_AF | PT_ISH | PT_MEM | (block_attribs & PT_KERNEL ? PT_KERNEL : PT_USER);
+                        uintptr_t entry = allocated | TABLE_POINTER_ATTRIBS;
                         L[levels[i]] = entry;
                     }
                     L = strip_table_entry(L[levels[i]]);
@@ -135,11 +139,10 @@ void init_mmu() {
     uintptr_t code_start = 0x80000;
     uintptr_t code_end = ((uintptr_t)(&_data));
     uintptr_t mem_end = 0x40000000;
-    uintptr_t *first_level_table = mmu_table_alloc();
-    map_region(first_level_table, mem_start, mem_start, code_start, PT_AF | PT_USER | PT_ISH | PT_MEM | PT_RW);
-    map_region(first_level_table, code_start, code_start, code_end, PT_AF | PT_USER | PT_ISH | PT_MEM | PT_RO);
-    map_region(first_level_table, code_end, code_end, MMIO_BASE, PT_AF | PT_USER | PT_ISH | PT_MEM | PT_RW);
-    map_region(first_level_table, MMIO_BASE, MMIO_BASE, mem_end, PT_AF | PT_USER | PT_OSH | PT_DEV | PT_RW);
+    map_region(mem_start, mem_start, code_start, PT_AF | PT_USER | PT_ISH | PT_MEM | PT_RW);
+    map_region(code_start, code_start, code_end, PT_AF | PT_USER | PT_ISH | PT_MEM | PT_RO);
+    map_region(code_end, code_end, MMIO_BASE, PT_AF | PT_USER | PT_ISH | PT_MEM | PT_RW);
+    map_region(MMIO_BASE, MMIO_BASE, mem_end, PT_AF | PT_USER | PT_OSH | PT_DEV | PT_RW);
     // Set TTBR0_EL1 to where our translation tables are
     asm volatile ("msr ttbr0_el1, %0" : : "r" ((uintptr_t)first_level_table + TTBR_CNP));
     // Set MAIR with our memory attributes indexed in the right places
