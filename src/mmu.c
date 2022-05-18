@@ -141,7 +141,7 @@ void init_mmu() {
                     MAIR_ATTRIDX(MAIR_ATTR_NORMAL_NC, PT_NC);
     asm volatile ("msr mair_el1, %0; isb" : : "r" (reg));
     // Configure TCR_EL1
-    reg = TCR_IPS(PARange_36) | TCR_TG1_4K | TCR_SH1_INNER | TCR_ORGN1_WBWA | TCR_IRGN1_WBWA |
+    reg = TCR_IPS(PARange_36) | TCR_TG1_4K | TCR_SH1_INNER | TCR_ORGN1_WBWA |
     TCR_EPD1_MASK | TCR_TG0_4K | TCR_SH0_INNER | TCR_ORGN0_WBWA | TCR_IRGN1_WBWA | 
     TCR_TxSZ(address_length);
     asm volatile("msr tcr_el1, %0; isb" : : "r" (reg));
