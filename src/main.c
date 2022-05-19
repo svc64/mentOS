@@ -2,7 +2,7 @@
 #include "exceptions.h"
 #include "time.h"
 #include "uart.h"
-#include "mem.h"
+#include "alloc.h"
 #include "stdlib.h"
 #include "proc.h"
 #include "fatfs/ff.h"
@@ -11,7 +11,7 @@
 extern volatile unsigned char _end; // where our kernel image ends
 uint8_t *end = (uint8_t *)(&_end);
 FATFS *fs = NULL;
-extern void *heap; // heap start (from mem.c)
+extern void *heap; // heap start (from alloc.c)
 
 void main() {
     init_uart();

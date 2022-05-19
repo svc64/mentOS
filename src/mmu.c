@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include "sysreg.h"
 #include "stdlib.h"
-#include "mem.h"
+#include "alloc.h"
 #include "print.h"
 #include "mmio.h"
 #include "exceptions.h"

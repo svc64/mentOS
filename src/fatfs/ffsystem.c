@@ -5,7 +5,7 @@
 
 
 #include "fatfs/ff.h"
-#include "mem.h"
+#include "alloc.h"
 
 #if FF_USE_LFN == 3	/* Dynamic memory allocation */
 

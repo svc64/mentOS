@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "exceptions.h"
-#include "mem.h"
+#include "alloc.h"
 #include "print.h"
 #include "mmio.h"
 extern volatile unsigned char _end; // where our kernel image ends

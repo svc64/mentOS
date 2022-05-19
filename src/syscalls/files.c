@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "fatfs/ff.h"
-#include "mem.h"
+#include "alloc.h"
 #include "stdlib.h"
 #include "syscalls/files.h"
 #include "proc.h"

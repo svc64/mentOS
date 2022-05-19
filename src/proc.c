@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include "print.h"
 #include "proc.h"
-#include "mem.h"
+#include "alloc.h"
 #include "stdlib.h"
 #include "time.h"
 #include "exceptions.h"
