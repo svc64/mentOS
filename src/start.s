@@ -22,7 +22,7 @@ check_el:
     b.ne    el2_to_el1
     b       el3_to_el1
 
-set_sctlr:
+.macro set_sctlr
     mov     x0, xzr
     orr     x0, x0, #(1 << 29)
     orr     x0, x0, #(1 << 28)
@@ -33,14 +33,14 @@ set_sctlr:
     orr     x0, x0, #(1 << 1)
     // apply sctlr_el1 configuration
     msr     sctlr_el1, x0
-    ret
+.endm
 
 el3_to_el1:
     mov     x0, #(3 << 20)
     msr     cpacr_el1, x0 // enable FP/SIMD
 
-    bl      set_sctlr
-    
+    set_sctlr
+
     mrs     x0, scr_el3
     orr     x0, x0, #(1 << 10) // all lower ELs are 64 bit
     msr     scr_el3, x0
@@ -59,7 +59,7 @@ el2_to_el1:
     mov     x0, #(3 << 20)
     msr     cpacr_el1, x0 // enable FP/SIMD
 
-    bl      set_sctlr
+    set_sctlr
 
     mov     x0, #(1 << 31)      // AArch64
     orr     x0, x0, #(1 << 1)   // SWIO hardwired on Pi3
