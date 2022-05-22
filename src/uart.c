@@ -28,7 +28,7 @@ void init_uart() {
 
     // clear whatever pending interrupts we have here
     // ICR = Interrupt Clear Register.
-    mmio_write(UART0_ICR, 0x7FF);
+    mmio_write(UART0_ICR, UART0_INT_ALL);
 
     // set integer & fractional clock dividers
     // divider = UART_CLOCK/(16 * baudrate) (broadcom docs page 183)
@@ -60,27 +60,26 @@ void init_uart() {
     mmio_write(UART0_FBRD, 11);
 
     // Enable FIFO & 8 bit data transmission (1 stop bit, no parity).
-    mmio_write(UART0_LCRH, (1 << 4) | (1 << 5) | (1 << 6));
+    mmio_write(UART0_LCRH, UART0_LCRH_FEN | UART0_LCRH_WLEN8);
 
     // Mask all interrupts.
-    mmio_write(UART0_IMSC, (1 << 1) | (1 << 4) | (1 << 5) | (1 << 6) |
-                           (1 << 7) | (1 << 8) | (1 << 9) | (1 << 10));
+    mmio_write(UART0_IMSC, UART0_INT_ALL);
 
     // Enable UART0, receive & transfer part of UART.
-    mmio_write(UART0_CR, (1 << 0) | (1 << 8) | (1 << 9));
+    mmio_write(UART0_CR, UART0_CR_UARTEN | UART0_CR_TXW | UART0_CR_RXE);
 }
 
 void uart_putc(unsigned char c)
 {
     // Wait for UART to become ready to transmit.
-    while (mmio_read(UART0_FR) & (1 << 5));
+    while (mmio_read(UART0_FR) & UART0_FR_TXFF);
     mmio_write(UART0_DR, c);
 }
 
 unsigned char uart_getc()
 {
     // Wait for UART to have received something.
-    while (mmio_read(UART0_FR) & (1 << 4));
+    while (mmio_read(UART0_FR) & UART0_FR_RXFE);
     return mmio_read(UART0_DR);
 }
 
