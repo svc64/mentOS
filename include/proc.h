@@ -16,6 +16,7 @@ struct proc {
     void *stack;
     void *exception_stack;
     struct arm64_thread_state state;
+    struct input_buffer *input_buffer;
     unsigned int pid;
 };
 
@@ -37,3 +38,4 @@ void exit_critical_section();
 
 // the current process
 extern struct proc *current_proc;
+extern struct proc *front_proc;

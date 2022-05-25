@@ -89,7 +89,9 @@
 #define UART0_IFSL_TX_3_4 (0b011 << 0) // Transmit FIFO 3/4 full
 #define UART0_IFSL_TX_7_8 (0b100 << 0) // Transmit FIFO 7/8 full
 
-void init_uart();
 void uart_putc(unsigned char c);
 unsigned char uart_getc();
 void uart_puts(const char* str);
+void uart_interrupts_clear(uint32_t interrupt);
+void init_uart();
+void uart_recieved(char c);

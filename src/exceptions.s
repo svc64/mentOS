@@ -10,6 +10,8 @@
 .macro exc_handler num, handler
     push_state
     run_handler \num, \handler
+    pop_state
+    eret
 .endm
 
 .macro run_handler num, handler
@@ -17,7 +19,6 @@
     mov     x1, \num
     mrs     x2, esr_el1
     bl      \handler
-    eret
 .endm
 
 .macro ventry handler
@@ -164,6 +165,45 @@
     stp     q0, q1, [sp, #-32]!
 .endm
 
+.macro pop_state_el1
+    ldp     q0, q1, [sp], #32
+    ldp     q2, q3, [sp], #32
+    ldp     q4, q5, [sp], #32
+    ldp     q6, q7, [sp], #32
+    ldp     q8, q9, [sp], #32
+    ldp     q10, q11, [sp], #32
+    ldp     q12, q13, [sp], #32
+    ldp     q14, q15, [sp], #32
+    ldp     q16, q17, [sp], #32
+    ldp     q18, q19, [sp], #32
+    ldp     q20, q21, [sp], #32
+    ldp     q22, q23, [sp], #32
+    ldp     q24, q25, [sp], #32
+    ldp     q26, q27, [sp], #32
+    ldp     q28, q29, [sp], #32
+    ldp     q30, q31, [sp], #32
+    ldp     x1, x0, [sp], #16 // x1 = spsr, x0 = sp
+    msr     spsr_el1, x1
+    ldp     x1, x0, [sp], #16 // restore x0 and pc
+    msr     elr_el1, x1
+    // load the rest
+    ldp     x1, x2, [sp], #16
+    ldp     x3, x4, [sp], #16
+    ldp     x5, x6, [sp], #16
+    ldp     x7, x8, [sp], #16
+    ldp     x9, x10, [sp], #16
+    ldp     x11, x12, [sp], #16
+    ldp     x13, x14, [sp], #16
+    ldp     x15, x16, [sp], #16
+    ldp     x17, x18, [sp], #16
+    ldp     x19, x20, [sp], #16
+    ldp     x21, x22, [sp], #16
+    ldp     x23, x24, [sp], #16
+    ldp     x25, x26, [sp], #16
+    ldp     x27, x28, [sp], #16
+    ldp     x29, x30, [sp], #16
+.endm
+
 .align 11
 .global exception_vectors
 exception_vectors:
@@ -203,6 +243,8 @@ sync_el1h:      // Synchronous, EL1h
 irq_el1h:       // IRQ, EL1h
     push_state_el1
     run_handler 5, handle_irq
+    pop_state_el1
+    eret
 fiq_el1h:       // FIQ, EL1h
     unhandled_exc 6
 serror_el1h:    // SError, EL1h

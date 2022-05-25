@@ -15,5 +15,7 @@
 #define SYSTEM_TIMER_IRQ_2  (1 << 2)
 #define SYSTEM_TIMER_IRQ_3  (1 << 3)
 
+#define UART0_IRQ           (1 << 25)
+
 void disable_irqs();
 void enable_irqs();

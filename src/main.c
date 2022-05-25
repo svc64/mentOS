@@ -7,6 +7,7 @@
 #include "proc.h"
 #include "fatfs/ff.h"
 #include "ramdisk.h"
+#include "irq.h"
 
 extern volatile unsigned char _end; // where our kernel image ends
 uint8_t *end = (uint8_t *)(&_end);
@@ -14,6 +15,7 @@ FATFS *fs = NULL;
 extern void *heap; // heap start (from alloc.c)
 
 void main() {
+    disable_irqs();
     init_uart();
     print("it's alive\n");
     // Set exception vectors
@@ -38,6 +40,7 @@ void main() {
     heap = (void *)((uintptr_t)(heap + sizeof(struct ramdisk_header) + ramdisk_size + 2 * PAGE_SIZE) & -PAGE_SIZE); // adjust heap
     print("heap start: 0x%x\n", heap);
     init_mmu();
+    enable_irqs();
     fs = malloc(sizeof(FATFS));
     if (!fs) {
         panic("failed to allocate filesystem data\n");
@@ -52,7 +55,6 @@ void main() {
     init_timer();
     // initialize the proc struct list
     proc_init();
-    disable_irqs();
     print("mentOS\n-------\n");
     print("main addr: 0x%x\n", &main);
     print("_end: 0x%x\n", &_end);

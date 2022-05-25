@@ -2,6 +2,54 @@
 #include "uart.h"
 #include "time.h"
 #include "mmio.h"
+#include "irq.h"
+#include "proc.h"
+#include "input_buffer.h"
+
+void uart_putc(unsigned char c)
+{
+    // Wait for UART to become ready to transmit.
+    while (mmio_read(UART0_FR) & UART0_FR_TXFF);
+    mmio_write(UART0_DR, c);
+}
+
+unsigned char uart_getc()
+{
+    // Wait for UART to have received something.
+    while (mmio_read(UART0_FR) & UART0_FR_RXFE);
+    return mmio_read(UART0_DR);
+}
+
+void uart_puts(const char* str)
+{
+    for (size_t i = 0; str[i] != 0; i++) {
+        uart_putc((unsigned char)str[i]);
+    }
+}
+
+void uart_interrupts_clear(uint32_t interrupts) {
+    mmio_write(UART0_ICR, interrupts);
+}
+
+void uart_recieved(char c) {
+    if (c == '\x7f' || c == '\x8') {
+        uart_puts("\x1B[1D");
+        uart_puts("\x1B[1P");
+        if (front_proc != NULL) {
+            input_buffer_remove(front_proc->input_buffer);
+        }
+    } else if (c == '\r') {
+        if (front_proc != NULL) {
+            input_buffer_push(front_proc->input_buffer, '\n');
+        }
+        uart_puts("\r\n");
+    } else if (c > 31 && c != 127) {
+        if (front_proc != NULL) {
+            input_buffer_push(front_proc->input_buffer, c);
+        }
+        uart_putc(c);
+    }
+}
 
 void init_uart() {
     // disable UART0 (while we're setting it up)
@@ -28,7 +76,7 @@ void init_uart() {
 
     // clear whatever pending interrupts we have here
     // ICR = Interrupt Clear Register.
-    mmio_write(UART0_ICR, UART0_INT_ALL);
+    uart_interrupts_clear(UART0_INT_ALL);
 
     // set integer & fractional clock dividers
     // divider = UART_CLOCK/(16 * baudrate) (broadcom docs page 183)
@@ -60,32 +108,13 @@ void init_uart() {
     mmio_write(UART0_FBRD, 11);
 
     // Enable FIFO & 8 bit data transmission (1 stop bit, no parity).
-    mmio_write(UART0_LCRH, UART0_LCRH_FEN | UART0_LCRH_WLEN8);
+    mmio_write(UART0_LCRH, UART0_LCRH_WLEN8);
 
-    // Mask all interrupts.
-    mmio_write(UART0_IMSC, UART0_INT_ALL);
+    // Enable the recieve interrupt.
+    mmio_write(UART0_IMSC, UART0_INT_RXR);
+    // Enable the UART IRQ.
+    mmio_write(ENABLE_IRQS_2, UART0_IRQ);
 
     // Enable UART0, receive & transfer part of UART.
     mmio_write(UART0_CR, UART0_CR_UARTEN | UART0_CR_TXW | UART0_CR_RXE);
-}
-
-void uart_putc(unsigned char c)
-{
-    // Wait for UART to become ready to transmit.
-    while (mmio_read(UART0_FR) & UART0_FR_TXFF);
-    mmio_write(UART0_DR, c);
-}
-
-unsigned char uart_getc()
-{
-    // Wait for UART to have received something.
-    while (mmio_read(UART0_FR) & UART0_FR_RXFE);
-    return mmio_read(UART0_DR);
-}
-
-void uart_puts(const char* str)
-{
-    for (size_t i = 0; str[i] != 0; i++) {
-        uart_putc((unsigned char)str[i]);
-    }
 }

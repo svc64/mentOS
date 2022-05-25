@@ -9,9 +9,11 @@
 #include "syscalls/files.h"
 #include "errors.h"
 #include "irq.h"
+#include "input_buffer.h"
 
 struct proc **proc_list = NULL;
 struct proc *current_proc = NULL;
+struct proc *front_proc = NULL;
 
 void proc_init() {
     if (!proc_list) {
@@ -50,6 +52,12 @@ int proc_new() {
                 return E_NOMEM;
             }
             bzero(proc_list[i]->exception_stack, STACK_SIZE);
+            proc_list[i]->input_buffer = input_buffer_new();
+            if (proc_list[i]->input_buffer == NULL) {
+                print("proc_new: failed to allocate input buffer!\n");
+                free(proc_list[i]);
+                return E_NOMEM;
+            }
             proc_list[i]->state.sp = (uintptr_t)proc_list[i]->stack + STACK_SIZE;
             proc_list[i]->state.cpsr = 0; // EL0
             return proc_list[i]->pid;
