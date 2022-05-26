@@ -186,6 +186,7 @@ void proc_exit(struct arm64_thread_state *state) {
             if (proc_list[idx] != NULL) {
                 has_procs = true;
                 if (!proc_list[idx]->idle) {
+                    exit_critical_section();
                     proc_enter(idx, PROC_TIME);
                 }
             }
@@ -193,9 +194,7 @@ void proc_exit(struct arm64_thread_state *state) {
         if (!has_procs) {
             panic("no processes running!");
         } else {
-            exit_critical_section();
             proc_wait();
-            enter_critical_section();
         }
     }
     panic("reached the end of proc_exit - we shouldn't be here");
@@ -206,7 +205,7 @@ move to another process (file operations, etc) */
 unsigned int critical_sections = 0;
 void enter_critical_section() {
     if (!critical_sections) {
-        disable_irqs();
+        disable_timer_irq();
     }
     critical_sections++;
 }
@@ -215,7 +214,7 @@ void enter_critical_section() {
 void exit_critical_section() {
     critical_sections--;
     if (!critical_sections) {
-        enable_irqs();
+        enable_timer_irq();
     }
 }
 

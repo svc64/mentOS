@@ -4,6 +4,7 @@ uint64_t current_timer_value = 0;
 
 void enable_timer_irq() {
     // enable timer IRQ 1 interrupt
+    timer_irq_handled();
     mmio_write(ENABLE_IRQS_1, SYSTEM_TIMER_IRQ_1);
 }
 
