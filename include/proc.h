@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdbool.h>
 #include "fatfs/ff.h"
 
 #define STACK_SIZE  524288  // 512KB
@@ -18,6 +19,7 @@ struct proc {
     struct arm64_thread_state state;
     struct input_buffer *input_buffer;
     unsigned int pid;
+    bool idle;
 };
 
 #define EXECUTABLE_MAGIC 0x73746e6d
@@ -35,6 +37,10 @@ void proc_exit(struct arm64_thread_state *state);
 void proc_state_drop(struct arm64_thread_state *, void *exception_stack);
 void enter_critical_section();
 void exit_critical_section();
+void proc_wait();
+void proc_next();
+void proc_idle();
+void proc_idle_release();
 
 // the current process
 extern struct proc *current_proc;

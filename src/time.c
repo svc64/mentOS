@@ -1,11 +1,15 @@
 #include "time.h"
-#include "print.h"
 
 uint64_t current_timer_value = 0;
 
-void init_timer() {
+void enable_timer_irq() {
     // enable timer IRQ 1 interrupt
     mmio_write(ENABLE_IRQS_1, SYSTEM_TIMER_IRQ_1);
+}
+
+void disable_timer_irq() {
+    // disable timer IRQ 1 interrupt
+    mmio_write(DISABLE_IRQS_1, SYSTEM_TIMER_IRQ_1);
 }
 
 // Make an IRQ 'time' ticks from now

@@ -66,17 +66,22 @@ void input_buffer_push(struct input_buffer *ibuf, char c) {
     }
     ibuf->buf[ibuf->write_pos % ibuf->buf_size] = c;
     ibuf->write_pos++;
+    proc_idle_release();
 }
 
 char input_buffer_pop(struct input_buffer *ibuf) {
-    while (!read64(&ibuf->write_pos)); // TODO: idle here
+    while (!read64(&ibuf->write_pos)) {
+        proc_idle();
+    }
     char c = ibuf->buf[ibuf->read_pos++];
     check_reset_buffer(ibuf);
     return c;
 }
 
 char input_buffer_last(struct input_buffer *ibuf) {
-    while (!read64(&ibuf->write_pos)); // TODO: idle here
+    while (!read64(&ibuf->write_pos)) {
+        proc_idle();
+    }
     return ibuf->buf[ibuf->write_pos - 1];
 }
 

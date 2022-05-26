@@ -172,20 +172,33 @@ void kill_invalid_syscall() {
 // We land here to handle an exception from a process.
 void proc_exit(struct arm64_thread_state *state) {
     unsigned int pid;
-    if (current_proc != NULL) {
+    enter_critical_section();
+    if (current_proc != NULL && state != NULL) {
         current_proc->state = *state;
         pid = current_proc->pid + 1;
     } else {
         pid = 1;
     }
-    for (unsigned int i = pid; i < MAX_PROC * 2; i++) {
-        unsigned int idx = i % MAX_PROC;
-        if (proc_list[idx] != NULL) {
-            proc_enter(idx, PROC_TIME);
+    while (true) {
+        bool has_procs = false;
+        for (unsigned int i = pid; i < MAX_PROC * 2; i++) {
+            unsigned int idx = i % MAX_PROC;
+            if (proc_list[idx] != NULL) {
+                has_procs = true;
+                if (!proc_list[idx]->idle) {
+                    proc_enter(idx, PROC_TIME);
+                }
+            }
+        }
+        if (!has_procs) {
+            panic("no processes running!");
+        } else {
+            exit_critical_section();
+            proc_wait();
+            enter_critical_section();
         }
     }
-    // if we get here. no proc is running. terrible news.
-    panic("no processes running!");
+    panic("reached the end of proc_exit - we shouldn't be here");
 }
 
 /* run this when we're in a syscall and the scheduler must not
@@ -203,5 +216,17 @@ void exit_critical_section() {
     critical_sections--;
     if (!critical_sections) {
         enable_irqs();
+    }
+}
+
+// proc is idle - move to others or sleep
+void proc_idle() {
+    current_proc->idle = true;
+    proc_next();
+}
+
+void proc_idle_release() {
+    for (unsigned int i = 0; i < MAX_PROC; i++) {
+        proc_list[i]->idle = false;
     }
 }

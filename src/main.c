@@ -52,7 +52,6 @@ void main() {
         print("mount fail: FatFs error %d\n", r);
         panic("Failed to mount ramdisk!");
     }
-    init_timer();
     // initialize the proc struct list
     proc_init();
     print("mentOS\n-------\n");
@@ -63,19 +62,23 @@ void main() {
     __asm__ __volatile__("mrs %0, CurrentEL\n\t" : "=r" (current_el) :  : "memory");
     current_el = (current_el >> 2) & 0x3;
     print("Running in EL%d\n", current_el);
+/*
     int test_pid = proc_new_executable("/test");
     if (test_pid < 0) {
         panic("failed to run test app!");
     }
+*/
     int pid = proc_new_executable("/shell");
     if (pid < 0) {
         panic("failed to run shell!");
     }
+/*
     int test2_pid = proc_new_executable("/2test");
     if (test2_pid < 0) {
         panic("failed to run test2 app!");
     }
+*/
     print("created pid %d\n", pid);
-    proc_enter(test_pid, PROC_TIME);
+    proc_enter(pid, PROC_TIME);
     panic("proc_enter returned. we shouldn't get here.");
 }

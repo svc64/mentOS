@@ -14,7 +14,8 @@
 #define TIMER_CS_M2	    (1 << 2)
 #define TIMER_CS_M3	    (1 << 3)
 
-void init_timer();
+void enable_timer_irq();
+void disable_timer_irq();
 void timer_irq_after(uint64_t time);
 void timer_irq_handled();
 void delay(int32_t count);
