@@ -2,6 +2,8 @@
 #include "alloc.h"
 #include "exceptions.h"
 #include "stdlib.h"
+#include "proc.h"
+#include "misc.h"
 
 #define DEFAULT_SIZE PAGE_SIZE
 

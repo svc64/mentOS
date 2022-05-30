@@ -1,19 +1,20 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "exceptions.h"
+#include "alloc_private.h"
 #include "alloc.h"
 #include "print.h"
+#include "proc.h"
 #include "mmio.h"
+#include "stdlib.h"
 extern volatile unsigned char _end; // where our kernel image ends
 #define HEAP_END    MMIO_BASE
 void *heap = (void *)(&_end); // actual heap with actual data
-struct metadata {
-    size_t size;
-    struct metadata *next;
-    uint8_t free;
-};
 struct metadata *first_alloc = NULL;
-void *malloc_aligned(size_t size, size_t alignment) {
+// size: the size of the allocation
+// alignment: allocation alignment
+// tag: a pointer to "tag" this allocation with. we can later free all allocations with this tag.
+void *malloc_aligned_tagged(size_t size, size_t alignment, void *tag) {
     // it's the first allocation, there's nothing to walk over.
     if (first_alloc == NULL) {
         uintptr_t md_ptr = (uintptr_t)heap;
@@ -26,6 +27,7 @@ void *malloc_aligned(size_t size, size_t alignment) {
             struct metadata *md = (struct metadata *)md_ptr;
             md->free = false;
             md->size = size;
+            md->tag = tag;
             md->next = NULL;
             first_alloc = md;
             return (void *)((uintptr_t)md + sizeof(struct metadata));
@@ -47,6 +49,7 @@ void *malloc_aligned(size_t size, size_t alignment) {
             struct metadata *md = (struct metadata *)md_ptr;
             md->free = false;
             md->size = size;
+            md->tag = tag;
             md->next = first_alloc;
             first_alloc = md;
             return (void *)data_ptr;
@@ -77,6 +80,7 @@ void *malloc_aligned(size_t size, size_t alignment) {
                     if (hole_size >= size) {
                         struct metadata *new_md = (struct metadata *)(md_ptr);
                         new_md->size = size;
+                        new_md->tag = tag;
                         new_md->next = md->next;
                         new_md->free = false;
                         md->next = new_md;
@@ -104,14 +108,23 @@ void *malloc_aligned(size_t size, size_t alignment) {
     }
     new_md->free = false;
     new_md->size = size;
+    new_md->tag = tag;
     new_md->next = NULL;
     prev_md->next = new_md;
     uintptr_t retval = (uintptr_t)new_md + sizeof(struct metadata);
     return (struct metadata *)(retval);
 }
 
+void *malloc_aligned(size_t size, size_t alignment) {
+    return malloc_aligned_tagged(size, alignment, NULL);
+}
+
+void *malloc_tagged(size_t size, void *tag) {
+    return malloc_aligned_tagged(size, 0, tag);
+}
+
 void *malloc(size_t size) {
-    return malloc_aligned(size, 0);
+    return malloc_aligned_tagged(size, 0, NULL);
 }
 
 void free(void *mem) {
@@ -128,6 +141,24 @@ void free(void *mem) {
         prev_md->next = md->next;
     }
     md->free = true;
+}
+
+// free all allocations with tag `tag`
+void free_tag(void *tag) {
+    struct metadata *md = first_alloc;
+    struct metadata *prev_md = NULL;
+    while (md != NULL) {
+        if (md->tag ==  tag) {
+            free((void *)((uintptr_t)md + sizeof(struct metadata)));
+            if (prev_md == NULL) {
+                prev_md = first_alloc;
+            }
+            md = prev_md;
+        } else {
+            prev_md = md;
+            md = md->next;
+        }
+    }
 }
 
 void *realloc(void *ptr, size_t size) {

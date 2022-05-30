@@ -13,8 +13,6 @@ struct __attribute__((__packed__)) arm64_thread_state {
     uintptr_t x[31];
 };
 struct proc {
-    void *executable;
-    void *stack;
     void *exception_stack;
     struct arm64_thread_state state;
     struct input_buffer *input_buffer;

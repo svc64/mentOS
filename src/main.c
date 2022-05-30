@@ -2,17 +2,18 @@
 #include "exceptions.h"
 #include "time.h"
 #include "uart.h"
+#include "alloc_private.h"
 #include "alloc.h"
 #include "stdlib.h"
 #include "proc.h"
 #include "fatfs/ff.h"
 #include "ramdisk.h"
 #include "irq.h"
+#include "mmu.h"
 
 extern volatile unsigned char _end; // where our kernel image ends
 uint8_t *end = (uint8_t *)(&_end);
 FATFS *fs = NULL;
-extern void *heap; // heap start (from alloc.c)
 
 void main() {
     disable_irqs();

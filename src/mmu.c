@@ -8,6 +8,7 @@
 #include "mmio.h"
 #include "exceptions.h"
 #include "mmu.h"
+
 /*
 The BCM2837 CPU has a bug(?) regarding memory alignment.
 A quick explainer: What is memory alignment?

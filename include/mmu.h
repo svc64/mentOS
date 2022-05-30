@@ -1,3 +1,5 @@
+void init_mmu();
+
 // Granularity
 #define PT_PAGE     0b11        // Table on levels other than the last
 #define PT_BLOCK    0b01        // Block (not permitted on the last level)

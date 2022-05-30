@@ -31,36 +31,39 @@ int proc_new() {
     for (int i = 0; i < MAX_PROC; i++) {
         if (proc_list[i] == NULL) {
             // TODO: deal with allocation errors
-            proc_list[i] = malloc(sizeof(struct proc));
-            if (proc_list[i] == NULL) {
+            struct proc *new_proc = malloc(sizeof(struct proc));
+            if (!new_proc) {
                 print("proc_new: failed to allocate proc_list entry!\n");
                 return E_NOMEM;
             }
-            bzero(proc_list[i], sizeof(struct proc));
-            proc_list[i]->pid = i;
-            proc_list[i]->stack = malloc_aligned(STACK_SIZE, PAGE_SIZE);
-            if (proc_list[i]->stack == NULL) {
+            bzero(new_proc, sizeof(struct proc));
+            new_proc->pid = i;
+            void *stack = malloc_aligned_tagged(STACK_SIZE, PAGE_SIZE, new_proc);
+            if (!stack) {
                 print("proc_new: failed to allocate stack!\n");
-                free(proc_list[i]);
+                free(new_proc);
                 return E_NOMEM;
             }
-            bzero(proc_list[i]->stack, STACK_SIZE);
-            proc_list[i]->exception_stack = malloc_aligned(STACK_SIZE, PAGE_SIZE);
-            if (proc_list[i]->exception_stack == NULL) {
+            bzero(stack, STACK_SIZE);
+            new_proc->exception_stack = malloc_aligned_tagged(STACK_SIZE, PAGE_SIZE, new_proc);
+            if (!new_proc->exception_stack) {
                 print("proc_new: failed to allocate exception stack!\n");
-                free(proc_list[i]);
+                free_tag(new_proc);
+                free(new_proc);
                 return E_NOMEM;
             }
-            bzero(proc_list[i]->exception_stack, STACK_SIZE);
-            proc_list[i]->input_buffer = input_buffer_new();
-            if (proc_list[i]->input_buffer == NULL) {
+            bzero(new_proc->exception_stack, STACK_SIZE);
+            new_proc->input_buffer = input_buffer_new();
+            if (!new_proc->input_buffer) {
                 print("proc_new: failed to allocate input buffer!\n");
-                free(proc_list[i]);
+                free_tag(new_proc);
+                free(new_proc);
                 return E_NOMEM;
             }
-            proc_list[i]->state.sp = (uintptr_t)proc_list[i]->stack + STACK_SIZE;
-            proc_list[i]->state.cpsr = 0; // EL0
-            return proc_list[i]->pid;
+            new_proc->state.sp = (uintptr_t)stack + STACK_SIZE;
+            new_proc->state.cpsr = 0; // EL0
+            proc_list[i] = new_proc;
+            return new_proc->pid;
         }
     }
     return E_LIMIT;
@@ -117,7 +120,6 @@ int proc_new_executable(const char *path) {
         return pid;
     }
     struct proc *p = proc_list[pid];
-    p->executable = executable_mem;
     p->state.pc = pc;
     return pid;
 }
@@ -154,11 +156,9 @@ void proc_kill(unsigned int pid, unsigned int signal) {
     }
     current_proc = NULL; // TODO: this can race with the next line (proc_list[pid] = NULL) in proc_exit. fix this if and when we implement SMP.
     proc_list[pid] = NULL; // context switcher shall not switch anymore.
-    // free stack and proc struct
-    free(p->stack);
-    if (p->executable != NULL) {
-        free(p->executable);
-    }
+    // free memory
+    free_tag(p);
+    input_buffer_free(p->input_buffer);
     free(p);
 }
 
