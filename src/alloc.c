@@ -15,6 +15,7 @@ struct metadata *first_alloc = NULL;
 // alignment: allocation alignment
 // tag: a pointer to "tag" this allocation with. we can later free all allocations with this tag.
 void *malloc_aligned_tagged(size_t size, size_t alignment, void *tag) {
+    enter_critical_section();
     // it's the first allocation, there's nothing to walk over.
     if (first_alloc == NULL) {
         uintptr_t md_ptr = (uintptr_t)heap;
@@ -30,8 +31,10 @@ void *malloc_aligned_tagged(size_t size, size_t alignment, void *tag) {
             md->tag = tag;
             md->next = NULL;
             first_alloc = md;
+            exit_critical_section();
             return (void *)((uintptr_t)md + sizeof(struct metadata));
         }
+        exit_critical_section();
         return NULL; // heap too small
     }
     /* the first allocation is after the heap starts
@@ -52,6 +55,7 @@ void *malloc_aligned_tagged(size_t size, size_t alignment, void *tag) {
             md->tag = tag;
             md->next = first_alloc;
             first_alloc = md;
+            exit_critical_section();
             return (void *)data_ptr;
         }
     }
@@ -84,6 +88,7 @@ void *malloc_aligned_tagged(size_t size, size_t alignment, void *tag) {
                         new_md->next = md->next;
                         new_md->free = false;
                         md->next = new_md;
+                        exit_critical_section();
                         return (void *)((uintptr_t)new_md + sizeof(struct metadata));
                     }
                 }
@@ -104,15 +109,16 @@ void *malloc_aligned_tagged(size_t size, size_t alignment, void *tag) {
     struct metadata *new_md = (struct metadata *)(new_md_ptr);
     if ((uintptr_t)new_md + sizeof(struct metadata) + size > HEAP_END) {
         // no space
+        exit_critical_section();
         return NULL;
     }
-    new_md->free = false;
     new_md->size = size;
     new_md->tag = tag;
     new_md->next = NULL;
+    new_md->free = false;
     prev_md->next = new_md;
-    uintptr_t retval = (uintptr_t)new_md + sizeof(struct metadata);
-    return (struct metadata *)(retval);
+    exit_critical_section();
+    return (uintptr_t)new_md + sizeof(struct metadata);
 }
 
 void *malloc_aligned(size_t size, size_t alignment) {
@@ -128,6 +134,7 @@ void *malloc(size_t size) {
 }
 
 void free(void *mem) {
+    enter_critical_section();
     struct metadata *md = (struct metadata *)((uintptr_t)mem - sizeof(struct metadata));
     /* if md is not at the start of the heap, there is a previous md that links to it.
     we should change that previous md to link to md->next */
@@ -141,16 +148,18 @@ void free(void *mem) {
         prev_md->next = md->next;
     }
     md->free = true;
+    exit_critical_section();
 }
 
 // free all allocations with tag `tag`
 void free_tag(void *tag) {
+    enter_critical_section();
     struct metadata *md = first_alloc;
     struct metadata *prev_md = NULL;
-    while (md != NULL) {
-        if (md->tag ==  tag) {
+    while (md) {
+        if (md->tag == tag) {
             free((void *)((uintptr_t)md + sizeof(struct metadata)));
-            if (prev_md == NULL) {
+            if (!prev_md) {
                 prev_md = first_alloc;
             }
             md = prev_md;
@@ -159,9 +168,11 @@ void free_tag(void *tag) {
             md = md->next;
         }
     }
+    exit_critical_section();
 }
 
 void *realloc(void *ptr, size_t size) {
+    enter_critical_section();
     if (ptr == NULL) {
         return malloc(size);
     }
@@ -172,13 +183,16 @@ void *realloc(void *ptr, size_t size) {
     if (!size) {
         // free
         free(ptr);
+        exit_critical_section();
         return NULL;
     }
     if (size == md->size) {
+        exit_critical_section();
         return ptr;
     }
     if (size < md->size) {
         md->size = size;
+        exit_critical_section();
         return ptr;
     }
     size_t expandable_size = md->size; // size of free memory after the allocation, the size that we can expand the allocation to
@@ -192,15 +206,47 @@ void *realloc(void *ptr, size_t size) {
         // re-allocate the memory at a new address
         void *new_alloc = malloc(size);
         if (new_alloc == NULL) {
+            exit_critical_section();
             return NULL;
         }
         memcpy(new_alloc, ptr, md->size);
         free(ptr);
+        exit_critical_section();
         return new_alloc;
     }
     // great! we can just modify the size
     md->size = size;
+    exit_critical_section();
     return ptr;
+}
+
+// check if an allocation exists
+bool allocation_exists(void *ptr) {
+    enter_critical_section();
+    struct metadata *current_md = first_alloc;
+    while (current_md != NULL) {
+        if ((uintptr_t)current_md + sizeof(struct metadata) == (uintptr_t)ptr) {
+            exit_critical_section();
+            return true;
+        }
+        current_md = current_md->next;
+    }
+    exit_critical_section();
+    return false;
+}
+
+// check if an allocation exists and is tagged by `tag`
+bool allocation_exists_tag(void *ptr, void *tag) {
+    enter_critical_section();
+    if (allocation_exists(ptr)) {
+        struct metadata *md = (struct metadata *)((uintptr_t)ptr - sizeof(struct metadata));
+        if (md->tag == tag) {
+            exit_critical_section();
+            return true;
+        }
+    }
+    exit_critical_section();
+    return false;
 }
 
 // Get a memory page.

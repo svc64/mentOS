@@ -53,6 +53,7 @@ int proc_new() {
                 return E_NOMEM;
             }
             bzero(new_proc->exception_stack, STACK_SIZE);
+            new_proc->exception_stack += STACK_SIZE;
             new_proc->input_buffer = input_buffer_new();
             if (!new_proc->input_buffer) {
                 print("proc_new: failed to allocate input buffer!\n");
@@ -90,11 +91,16 @@ int proc_new_executable(const char *path) {
     if (file_size > 0xffffffff) {
         print("executable too big: %s\n", path);
         close_syscall(fd);
-        return -1;
+        return E_OOB;
     }
     uintptr_t executable_mem = (uintptr_t)malloc_aligned(file_size, PAGE_SIZE);
+    if (!executable_mem) {
+        close_syscall(fd);
+        return E_OOB;
+    }
     ssize_t size_read = read_syscall(fd, executable_mem, file_size);
     if (size_read < 0) {
+        free(executable_mem);
         close_syscall(fd);
         return size_read;
     }
@@ -119,8 +125,7 @@ int proc_new_executable(const char *path) {
         free(executable_mem);
         return pid;
     }
-    struct proc *p = proc_list[pid];
-    p->state.pc = pc;
+    proc_list[pid]->state.pc = pc;
     return pid;
 }
 
@@ -162,11 +167,16 @@ void proc_kill(unsigned int pid, unsigned int signal) {
     free(p);
 }
 
+// kill the current process and move to another one
+void current_proc_kill(int signal) {
+    disable_irqs();
+    proc_kill(current_proc->pid, signal);
+    proc_exit(NULL); // move on
+}
+
 // process tried doing an invalid syscall, kill it
 void kill_invalid_syscall() {
-    disable_irqs();
-    proc_kill(current_proc->pid, SIGSYS);
-    proc_exit(NULL); // move on
+    current_proc_kill(SIGSYS);
 }
 
 // We land here to handle an exception from a process.

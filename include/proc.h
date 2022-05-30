@@ -31,6 +31,7 @@ int proc_new_executable(const char *path);
 int proc_new_func(uintptr_t pc);
 void proc_enter(int pid, unsigned int time);
 void proc_kill(unsigned int pid, unsigned int signal);
+void current_proc_kill(int signal);
 void proc_exit(struct arm64_thread_state *state);
 void proc_state_drop(struct arm64_thread_state *, void *exception_stack);
 void enter_critical_section();

@@ -27,4 +27,7 @@ syscall_table:
 /* 17 */    syscall rename_syscall 32
 /* 18 */    syscall exit_syscall 0
 /* 19 */    syscall syscall_input_read 64
-syscall_table_size: .dword 20
+/* 20 */    syscall malloc_syscall 64
+/* 21 */    syscall free_syscall 64
+/* 22 */    syscall realloc_syscall 64
+syscall_table_size: .dword 23
