@@ -1,7 +1,7 @@
 #include "stdlib.h"
 #include "print.h"
 
-#define ALIGNED(__x, __size) (((uintptr_t)(__x) & (__size)) == (uintptr_t)(__x))
+#define ALIGNED(__x, __size) (!((uintptr_t)(__x) % (__size)))
 
 void *memcpy(void *s, void *d, size_t n) {
     void *dest = d;
