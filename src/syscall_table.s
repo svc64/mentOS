@@ -30,4 +30,5 @@ syscall_table:
 /* 20 */    syscall malloc_syscall 64
 /* 21 */    syscall free_syscall 64
 /* 22 */    syscall realloc_syscall 64
-syscall_table_size: .dword 23
+/* 23 */    syscall exec_syscall 32
+syscall_table_size: .dword 24

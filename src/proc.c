@@ -28,45 +28,51 @@ void proc_init() {
 
 // create a new process
 int proc_new() {
+    enter_critical_section();
     for (int i = 0; i < MAX_PROC; i++) {
         if (proc_list[i] == NULL) {
-            // TODO: deal with allocation errors
             struct proc *new_proc = malloc(sizeof(struct proc));
             if (!new_proc) {
                 print("proc_new: failed to allocate proc_list entry!\n");
+                exit_critical_section();
                 return E_NOMEM;
             }
             bzero(new_proc, sizeof(struct proc));
-            new_proc->pid = i;
             void *stack = malloc_aligned_tagged(STACK_SIZE, PAGE_SIZE, new_proc);
             if (!stack) {
                 print("proc_new: failed to allocate stack!\n");
                 free(new_proc);
+                exit_critical_section();
                 return E_NOMEM;
             }
             bzero(stack, STACK_SIZE);
-            new_proc->exception_stack = malloc_aligned_tagged(STACK_SIZE, PAGE_SIZE, new_proc);
-            if (!new_proc->exception_stack) {
+            void *exception_stack = malloc_aligned_tagged(STACK_SIZE, PAGE_SIZE, new_proc);
+            if (!exception_stack) {
                 print("proc_new: failed to allocate exception stack!\n");
                 free_tag(new_proc);
                 free(new_proc);
+                exit_critical_section();
                 return E_NOMEM;
             }
-            bzero(new_proc->exception_stack, STACK_SIZE);
-            new_proc->exception_stack += STACK_SIZE;
+            bzero(exception_stack, STACK_SIZE);
             new_proc->input_buffer = input_buffer_new();
             if (!new_proc->input_buffer) {
                 print("proc_new: failed to allocate input buffer!\n");
                 free_tag(new_proc);
                 free(new_proc);
+                exit_critical_section();
                 return E_NOMEM;
             }
             new_proc->state.sp = (uintptr_t)stack + STACK_SIZE;
+            new_proc->exception_stack = (uintptr_t)exception_stack + STACK_SIZE;
             new_proc->state.cpsr = 0; // EL0
+            new_proc->pid = i;
             proc_list[i] = new_proc;
+            exit_critical_section();
             return new_proc->pid;
         }
     }
+    exit_critical_section();
     return E_LIMIT;
 }
 
@@ -82,50 +88,75 @@ int proc_new_func(uintptr_t pc) {
 
 // Create a new process from an executable file
 int proc_new_executable(const char *path) {
+    enter_critical_section();
+    int pid = proc_new();
+    if (pid < 0) {
+        return pid;
+    }
     int fd = open_syscall(path, O_READ);
     if (fd < 0) {
         print("failed to open executable %s\n", path);
+        free(proc_list[pid]);
+        proc_list[pid] = NULL;
+        exit_critical_section();
         return fd; // fd is an error, return it.
     }
     ssize_t file_size = fsize_syscall(fd);
     if (file_size > 0xffffffff) {
         print("executable too big: %s\n", path);
         close_syscall(fd);
+        free(proc_list[pid]);
+        proc_list[pid] = NULL;
+        exit_critical_section();
         return E_OOB;
     }
-    uintptr_t executable_mem = (uintptr_t)malloc_aligned(file_size, PAGE_SIZE);
+    void *executable_mem = malloc_aligned_tagged(file_size, PAGE_SIZE, proc_list[pid]);
     if (!executable_mem) {
         close_syscall(fd);
+        free(proc_list[pid]);
+        proc_list[pid] = NULL;
+        exit_critical_section();
         return E_OOB;
     }
     ssize_t size_read = read_syscall(fd, executable_mem, file_size);
     if (size_read < 0) {
-        free(executable_mem);
         close_syscall(fd);
+        free_tag(proc_list[pid]);
+        free(proc_list[pid]);
+        proc_list[pid] = NULL;
+        exit_critical_section();
         return size_read;
     }
     if (size_read != file_size) {
         print("failed to read executable %s\n", path);
         close_syscall(fd);
+        free_tag(proc_list[pid]);
+        free(proc_list[pid]);
+        proc_list[pid] = NULL;
+        exit_critical_section();
         return E_IOERR;
     }
     close_syscall(fd);
     struct mentos_executable *exec = (struct mentos_executable *)executable_mem;
     if (exec->magic != EXECUTABLE_MAGIC) {
         print("incorrect executable magic: 0x%x\n", exec->magic);
+        free_tag(proc_list[pid]);
+        free(proc_list[pid]);
+        proc_list[pid] = NULL;
+        exit_critical_section();
         return E_FORMAT;
     }
     uintptr_t pc = executable_mem + exec->entry_offset;
     if (pc >= executable_mem + file_size) {
         print("entry point offset out of bounds in %s\n", path);
+        free_tag(proc_list[pid]);
+        free(proc_list[pid]);
+        proc_list[pid] = NULL;
+        exit_critical_section();
         return E_OOB;
     }
-    int pid = proc_new();
-    if (pid < 0) {
-        free(executable_mem);
-        return pid;
-    }
     proc_list[pid]->state.pc = pc;
+    exit_critical_section();
     return pid;
 }
 
@@ -159,11 +190,19 @@ void proc_kill(unsigned int pid, unsigned int signal) {
             }
         }
     }
+    // unblock any processes that are blocked by this (former) one
+    for (int i = 0; i < MAX_PROC; i++) {
+        if (proc_list[i] != NULL) {
+            if (proc_list[i]->blocking_child == p) {
+                proc_list[i]->blocking_child = NULL;
+            }
+        }
+    }
     current_proc = NULL; // TODO: this can race with the next line (proc_list[pid] = NULL) in proc_exit. fix this if and when we implement SMP.
     proc_list[pid] = NULL; // context switcher shall not switch anymore.
     // free memory
-    free_tag(p);
     input_buffer_free(p->input_buffer);
+    free_tag(p);
     free(p);
 }
 
@@ -180,9 +219,10 @@ void kill_invalid_syscall() {
 }
 
 // We land here to handle an exception from a process.
+// state - state of the process
 void proc_exit(struct arm64_thread_state *state) {
-    unsigned int pid;
     enter_critical_section();
+    unsigned int pid;
     if (current_proc != NULL && state != NULL) {
         current_proc->state = *state;
         pid = current_proc->pid + 1;
@@ -195,7 +235,7 @@ void proc_exit(struct arm64_thread_state *state) {
             unsigned int idx = i % MAX_PROC;
             if (proc_list[idx] != NULL) {
                 has_procs = true;
-                if (!proc_list[idx]->idle) {
+                if (!proc_list[idx]->idle && !proc_list[idx]->blocking_child) {
                     exit_critical_section();
                     proc_enter(idx, PROC_TIME);
                 }

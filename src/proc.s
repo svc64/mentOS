@@ -18,7 +18,8 @@ proc_wait:
     wfi
     ret
 
-proc_next:
+// push el1 state with a custom label as pc
+.macro push_el1_state_pc pc_label
     // push the current state
     stp     x29, x30, [sp, #-16]!
     stp     x27, x28, [sp, #-16]!
@@ -37,7 +38,7 @@ proc_next:
     stp     x1, x2, [sp, #-16]!
     // save pc, spsr and sp
     // pc = return trampoline
-    adr     x20, proc_next_ret
+    adr     x20, \pc_label
     stp     x20, x0, [sp, #-16]! // save x0 and pc
     // save sp and ""cpsr""
     mrs     x21, daif
@@ -66,6 +67,10 @@ proc_next:
     stp     q4, q5, [sp, #-32]!
     stp     q2, q3, [sp, #-32]!
     stp     q0, q1, [sp, #-32]!
+.endm
+
+proc_next:
+    push_el1_state_pc proc_next_ret
     mov     x0, sp
     bl      proc_exit
 proc_next_ret:

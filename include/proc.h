@@ -16,6 +16,7 @@ struct proc {
     void *exception_stack;
     struct arm64_thread_state state;
     struct input_buffer *input_buffer;
+    struct proc *blocking_child;
     unsigned int pid;
     bool idle;
 };
@@ -42,5 +43,6 @@ void proc_idle();
 void proc_idle_release();
 
 // the current process
+extern struct proc **proc_list;
 extern struct proc *current_proc;
 extern struct proc *front_proc;
