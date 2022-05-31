@@ -37,6 +37,7 @@ serror_el1t:    // SError, EL1t
 sync_el1h:      // Synchronous, EL1h
     unhandled_exc 4
 irq_el1h:       // IRQ, EL1h
+    disable_irqs
     push_state_el1
     run_handler 5, handle_irq
     pop_state_el1
@@ -49,7 +50,6 @@ serror_el1h:    // SError, EL1h
 sync_el0_64:    // Synchronous, EL0 (64 bit)
     disable_irqs
     push_state
-    enable_irqs
     // TODO: fix this. handle other cases of el0 sync
     // is it a syscall?
     // note: don't touch x0-x7, they are parameters for our syscall.
@@ -59,6 +59,7 @@ sync_el0_64:    // Synchronous, EL0 (64 bit)
     b.eq    syscall_handler
     run_handler 8, el0_sync_handler
 irq_el0_64:     // IRQ, EL0 (64 bit)
+    disable_irqs
     exc_handler 9, handle_irq
 fiq_el0_64:     // FIQ, EL0 (64 bit)
     disable_irqs
@@ -91,7 +92,9 @@ syscall_handler:
     ldr     x19, [x19]
     // x18 = syscall pointer
     // x19 = return size
+    enable_irqs
     blr     x18
+    disable_irqs
     // point x18 to the saved x0 register
     mov     x18, sp
     add     x18, x18, 536 // x18 = &x0
@@ -99,7 +102,6 @@ syscall_handler:
     cmp     x19, 0
     b.ne    has_retval
 ret_from_syscall:
-    disable_irqs
     pop_state
     eret
 has_retval:

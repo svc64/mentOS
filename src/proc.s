@@ -10,8 +10,9 @@ proc_state_drop:
     msr     spsel, 1
     mov     sp, x1
     // restore state and bye
-	restore_state_x30
-	eret
+    disable_irqs
+    restore_state_x30
+    eret
 
 proc_wait:
     wfi

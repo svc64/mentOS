@@ -41,7 +41,6 @@ void main() {
     heap = (void *)((uintptr_t)(heap + sizeof(struct ramdisk_header) + ramdisk_size + 2 * PAGE_SIZE) & -PAGE_SIZE); // adjust heap
     print("heap start: 0x%x\n", heap);
     init_mmu();
-    enable_irqs();
     fs = malloc(sizeof(FATFS));
     if (!fs) {
         panic("failed to allocate filesystem data\n");

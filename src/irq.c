@@ -20,8 +20,8 @@ void handle_irq_1(uint32_t irq, struct arm64_thread_state *thread_state) {
 void handle_irq_2(uint32_t irq, struct arm64_thread_state *thread_state, int exc) {
     switch (irq) {
         case UART0_IRQ:
-            uart_recieved(uart_getc());
             uart_interrupts_clear(UART0_INT_RXR);
+            uart_recieved(uart_getc());
             break;
         default:
             print("hmmmm... got unknown IRQ2 %d. ignoring...\n", irq);

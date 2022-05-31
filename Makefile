@@ -36,7 +36,7 @@ dirs:
 
 $(BUILD_DIR)/%.s.o: %.s
 	mkdir -p $(dir $@)
-	as -x assembler-with-cpp -I$(INCLUDE_DIR) --target=aarch64-elf $(CFLAGS) -c $< -o $@
+	clang -x assembler-with-cpp -I$(INCLUDE_DIR) --target=aarch64-elf $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/%.c.o: %.c
 	mkdir -p $(dir $@)
