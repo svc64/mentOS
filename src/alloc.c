@@ -70,7 +70,7 @@ void *malloc_aligned_tagged(size_t size, size_t alignment, void *tag) {
             if (maybe_next < (uintptr_t)md->next) {
                 // we have a hole, great. does our size fit?
                 size_t hole_size = (uintptr_t)md->next - maybe_next;
-                if (hole_size >= size) {
+                if (hole_size >= size + sizeof(struct metadata)) {
                     // there are 'hole_size' bytes between maybe_next and md->next, maybe we can allocate there.
                     // check alignment
                     uintptr_t md_ptr = maybe_next;
@@ -81,7 +81,7 @@ void *malloc_aligned_tagged(size_t size, size_t alignment, void *tag) {
                     }
                     // size check
                     hole_size = (uintptr_t)md->next - md_ptr;
-                    if (hole_size >= size) {
+                    if (hole_size >= size + sizeof(struct metadata)) {
                         struct metadata *new_md = (struct metadata *)(md_ptr);
                         new_md->size = size;
                         new_md->tag = tag;
@@ -153,6 +153,9 @@ void free(void *mem) {
 
 // free all allocations with tag `tag`
 void free_tag(void *tag) {
+    if (!tag) {
+        panic("free_tag: tag is NULL");
+    }
     enter_critical_section();
     struct metadata *md = first_alloc;
     struct metadata *prev_md = NULL;
