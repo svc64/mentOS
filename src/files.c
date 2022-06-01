@@ -4,14 +4,14 @@
 #include "fatfs/ff.h"
 #include "alloc.h"
 #include "stdlib.h"
-#include "syscalls/files.h"
+#include "files.h"
 #include "proc.h"
 #include "errors.h"
 
 struct dir_d *dirs[MAX_DESCRIPTORS];
 struct fd *fds[MAX_DESCRIPTORS];
 
-int open_syscall(char *path, int mode) {
+int open(char *path, int mode) {
     BYTE fatfs_mode = FA_READ;
     if (mode & O_WRITE) {
         fatfs_mode = FA_WRITE;
@@ -64,31 +64,12 @@ int open_syscall(char *path, int mode) {
                 return E_UNKNOWN;
         }
     }
-    fds[fd]->proc = current_proc;
     exit_critical_section();
     return fd;
 }
 
-int fd_valid(int fd) {
-    enter_critical_section();
-    if (fd < 0 || fd >= MAX_DESCRIPTORS) {
-        return false;
-    }
-    if (fds[fd]->proc != current_proc) {
-        return false;
-    }
-    if (fds[fd] == NULL) {
-        return false;
-    }
-    exit_critical_section();
-    return true;
-}
-
-ssize_t read_syscall(int fd, void *buf, size_t count) {
+ssize_t read(int fd, void *buf, size_t count) {
     UINT bytes_read = -1;
-    if (!fd_valid(fd)) {
-        return E_INVALID_DESCRIPTOR;
-    }
     FRESULT res = f_read(fds[fd]->f, buf, count, &bytes_read);
     if (res) {
         switch (res)
@@ -104,20 +85,13 @@ ssize_t read_syscall(int fd, void *buf, size_t count) {
     return bytes_read;
 }
 
-ssize_t ftell_syscall(int fd) {
-    if (!fd_valid(fd)) {
-        return E_INVALID_DESCRIPTOR;
-    }
+ssize_t ftell(int fd) {
     return f_tell(fds[fd]->f);
 }
 
-ssize_t write_syscall(int fd, void *buf, size_t count) {
+ssize_t write(int fd, void *buf, size_t count) {
     enter_critical_section();
     UINT bytes_written = -1;
-    if (!fd_valid(fd)) {
-        exit_critical_section();
-        return E_INVALID_DESCRIPTOR;
-    }
     FRESULT res = f_write(fds[fd]->f, buf, count, &bytes_written);
     exit_critical_section();
     if (res) {
@@ -135,11 +109,8 @@ ssize_t write_syscall(int fd, void *buf, size_t count) {
 }
 
 // should never fail when a file is opened for reading only
-int close_syscall(int fd) {
+int close(int fd) {
     enter_critical_section();
-    if (!fd_valid(fd)) {
-        return E_INVALID_DESCRIPTOR;
-    }
     FRESULT res = f_close(fds[fd]->f);
     if (res) {
         exit_critical_section();
@@ -158,17 +129,11 @@ int close_syscall(int fd) {
     return 0;
 }
 
-ssize_t fsize_syscall(int fd) {
-    if (!fd_valid(fd)) {
-        return E_INVALID_DESCRIPTOR;
-    }
+ssize_t fsize(int fd) {
     return f_size(fds[fd]->f);
 }
 
-int lseek_syscall(int fd, uintptr_t where) {
-    if (!fd_valid(fd)) {
-        return E_INVALID_DESCRIPTOR;
-    }
+int lseek(int fd, uintptr_t where) {
     if (where > f_size(fds[fd]->f)) {
         return E_OOB;
     }
@@ -185,18 +150,14 @@ int lseek_syscall(int fd, uintptr_t where) {
     return 0;
 }
 
-int ftruncate_syscall(int fd, uintptr_t length) {
+int ftruncate(int fd, uintptr_t length) {
     enter_critical_section();
-    if (!fd_valid(fd)) {
-        exit_critical_section();
-        return E_INVALID_DESCRIPTOR;
-    }
     if (length > f_size(fds[fd]->f)) {
         exit_critical_section();
         return E_OOB;
     }
     uintptr_t current_off = f_tell(fds[fd]->f);
-    int ret = lseek_syscall(fd, length);
+    int ret = lseek(fd, length);
     if (ret) {
         exit_critical_section();
         return ret;
@@ -215,13 +176,13 @@ int ftruncate_syscall(int fd, uintptr_t length) {
         }
     }
     if (current_off > length) {
-        int ret = lseek_syscall(fd, length);
+        int ret = lseek(fd, length);
         if (ret) {
             exit_critical_section();
             return ret;
         }
     } else {
-        int ret = lseek_syscall(fd, current_off);
+        int ret = lseek(fd, current_off);
         if (ret) {
             exit_critical_section();
             return ret;
@@ -231,7 +192,7 @@ int ftruncate_syscall(int fd, uintptr_t length) {
     return 0;
 }
 
-int opendir_syscall(char *path) {
+int opendir(char *path) {
     enter_critical_section();
     int dir = -1;
     for (int i = 0; i < MAX_DESCRIPTORS; i++) {
@@ -276,25 +237,7 @@ int opendir_syscall(char *path) {
     return dir;
 }
 
-int dir_valid(int dir) {
-    enter_critical_section();
-    if (dir < 0 || dir >= MAX_DESCRIPTORS) {
-        return false;
-    }
-    if (dirs[dir] == NULL) {
-        return false;
-    }
-    if (dirs[dir]->proc != current_proc) {
-        return false;
-    }
-    exit_critical_section();
-    return true;
-}
-
-int read_dir_syscall(int dir, struct dirent *ent) {
-    if (!dir_valid(dir)) {
-        return E_INVALID_DESCRIPTOR;
-    }
+int read_dir(int dir, struct dirent *ent) {
     if (dirs[dir]->end) {
         return E_OOB;
     }
@@ -322,11 +265,8 @@ int read_dir_syscall(int dir, struct dirent *ent) {
     return 0;
 }
 
-int closedir_syscall(int dir) {
+int closedir(int dir) {
     enter_critical_section();
-    if (!dir_valid(dir)) {
-        return E_INVALID_DESCRIPTOR;
-    }
     FRESULT res = f_closedir(dirs[dir]->d);
     if (res) {
         exit_critical_section();
@@ -345,7 +285,7 @@ int closedir_syscall(int dir) {
     return 0;
 }
 
-int mkdir_syscall(char *path) {
+int mkdir(char *path) {
     enter_critical_section();
     FRESULT res = f_mkdir(path);
     exit_critical_section();
@@ -367,7 +307,8 @@ int mkdir_syscall(char *path) {
     }
     return 0;
 }
-int unlink_syscall(char *path) {
+
+int unlink(char *path) {
     enter_critical_section();
     FRESULT res = f_unlink(path);
     exit_critical_section();
@@ -390,7 +331,7 @@ int unlink_syscall(char *path) {
     return 0;
 }
 
-int rename_syscall(char *old_name, char *new_name) {
+int rename(char *old_name, char *new_name) {
     enter_critical_section();
     FRESULT res = f_rename(old_name, new_name);
     exit_critical_section();

@@ -6,7 +6,7 @@
 #include "time.h"
 #include "exceptions.h"
 #include "signal.h"
-#include "syscalls/files.h"
+#include "files.h"
 #include "errors.h"
 #include "irq.h"
 #include "input_buffer.h"
@@ -93,7 +93,7 @@ int proc_new_executable(const char *path) {
     if (pid < 0) {
         return pid;
     }
-    int fd = open_syscall(path, O_READ);
+    int fd = open(path, O_READ);
     if (fd < 0) {
         print("failed to open executable %s\n", path);
         free(proc_list[pid]);
@@ -101,10 +101,10 @@ int proc_new_executable(const char *path) {
         exit_critical_section();
         return fd; // fd is an error, return it.
     }
-    ssize_t file_size = fsize_syscall(fd);
+    ssize_t file_size = fsize(fd);
     if (file_size > 0xffffffff) {
         print("executable too big: %s\n", path);
-        close_syscall(fd);
+        close(fd);
         free(proc_list[pid]);
         proc_list[pid] = NULL;
         exit_critical_section();
@@ -112,15 +112,15 @@ int proc_new_executable(const char *path) {
     }
     void *executable_mem = malloc_aligned_tagged(file_size, PAGE_SIZE, proc_list[pid]);
     if (!executable_mem) {
-        close_syscall(fd);
+        close(fd);
         free(proc_list[pid]);
         proc_list[pid] = NULL;
         exit_critical_section();
         return E_OOB;
     }
-    ssize_t size_read = read_syscall(fd, executable_mem, file_size);
+    ssize_t size_read = read(fd, executable_mem, file_size);
     if (size_read < 0) {
-        close_syscall(fd);
+        close(fd);
         free_tag(proc_list[pid]);
         free(proc_list[pid]);
         proc_list[pid] = NULL;
@@ -129,14 +129,14 @@ int proc_new_executable(const char *path) {
     }
     if (size_read != file_size) {
         print("failed to read executable %s\n", path);
-        close_syscall(fd);
+        close(fd);
         free_tag(proc_list[pid]);
         free(proc_list[pid]);
         proc_list[pid] = NULL;
         exit_critical_section();
         return E_IOERR;
     }
-    close_syscall(fd);
+    close(fd);
     struct mentos_executable *exec = (struct mentos_executable *)executable_mem;
     if (exec->magic != EXECUTABLE_MAGIC) {
         print("incorrect executable magic: 0x%x\n", exec->magic);
@@ -174,7 +174,7 @@ void proc_kill(unsigned int pid, unsigned int signal) {
     for (size_t i = 0; i < MAX_DESCRIPTORS; i++) {
         if (fds[i] != NULL) {
             if (fds[i]->proc == p) {
-                if (close_syscall(i)) {
+                if (close(i)) {
                     print("[%d] failed to close file descriptor %d\n", pid, i);
                     print("[%d] kernel closed file %d\n", pid, i);
                 }
@@ -182,7 +182,7 @@ void proc_kill(unsigned int pid, unsigned int signal) {
         }
         if (dirs[i] != NULL) {
             if (dirs[i]->proc == p) {
-                if (closedir_syscall(i)) {
+                if (closedir(i)) {
                     print("[%d] failed to close directory descriptor %d\n", pid, i);
                 } else {
                     print("[%d] kernel closed directory %d\n", pid, i);
