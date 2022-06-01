@@ -154,3 +154,24 @@ size_t strlen(const char *str) {
     }
     return c;
 }
+
+char *strcpy(char *dst, const char *src) {
+    memcpy(dst, src, strlen(src) + 1);
+    return dst;
+}
+
+char *strcat(char *dst, const char *src) {
+    memcpy(dst + strlen(dst), src, strlen(src) + 1);
+    return dst;
+}
+
+int strcmp(const char *s1, const char *s2) {
+    while (*s1) {
+        if (*s1 != *s2) {
+            break;
+        }
+        s1++;
+        s2++;
+    }
+    return *(const unsigned char*)s1 - *(const unsigned char*)s2;
+}

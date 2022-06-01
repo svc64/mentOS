@@ -17,6 +17,7 @@ struct proc {
     struct arm64_thread_state state;
     struct input_buffer *input_buffer;
     struct proc *blocking_child;
+    char *cwd;
     unsigned int pid;
     bool idle;
 };

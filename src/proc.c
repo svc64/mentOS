@@ -11,6 +11,8 @@
 #include "irq.h"
 #include "input_buffer.h"
 
+#define DEFAULT_CWD "/"
+
 struct proc **proc_list = NULL;
 struct proc *current_proc = NULL;
 struct proc *front_proc = NULL;
@@ -38,9 +40,18 @@ int proc_new() {
                 return E_NOMEM;
             }
             bzero(new_proc, sizeof(struct proc));
+            char *cwd = malloc(sizeof(DEFAULT_CWD) + 1);
+            strcpy(cwd, DEFAULT_CWD);
+            if (!cwd) {
+                print("proc_new: failed to allocate cwd!\n");
+                free(new_proc);
+                exit_critical_section();
+                return E_NOMEM;
+            }
             void *stack = malloc_aligned_tagged(STACK_SIZE, PAGE_SIZE, new_proc);
             if (!stack) {
                 print("proc_new: failed to allocate stack!\n");
+                free_tag(new_proc);
                 free(new_proc);
                 exit_critical_section();
                 return E_NOMEM;

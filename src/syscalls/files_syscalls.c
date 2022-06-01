@@ -4,12 +4,18 @@
 #include "proc.h"
 #include "files.h"
 #include "errors.h"
+#include "path.h"
 
 int open_syscall(char *path, int mode) {
-    int fd = open(path, mode);
+    char *sanitized_path = sanitize_path(path, current_proc->cwd);
+    if (!sanitized_path) {
+        return E_NOMEM;
+    }
+    int fd = open(sanitized_path, mode);
     if (fd >= 0) {
         fds[fd]->proc = current_proc;
     }
+    free(sanitized_path);
     return fd;
 }
 
@@ -81,7 +87,13 @@ int ftruncate_syscall(int fd, uintptr_t length) {
 }
 
 int opendir_syscall(char *path) {
-    return opendir(path);
+    char *sanitized_path = sanitize_path(path, current_proc->cwd);
+    if (!sanitized_path) {
+        return E_NOMEM;
+    }
+    int ret = opendir(sanitized_path);
+    free(sanitized_path);
+    return ret;
 }
 
 int dir_valid(int dir) {
@@ -114,13 +126,33 @@ int closedir_syscall(int dir) {
 }
 
 int mkdir_syscall(char *path) {
-    return mkdir(path);
+    char *sanitized_path = sanitize_path(path, current_proc->cwd);
+    if (!sanitized_path) {
+        return E_NOMEM;
+    }
+    return mkdir(sanitized_path);
 }
 
 int unlink_syscall(char *path) {
-    return unlink(path);
+    char *sanitized_path = sanitize_path(path, current_proc->cwd);
+    if (!sanitized_path) {
+        return E_NOMEM;
+    }
+    return unlink(sanitized_path);
 }
 
 int rename_syscall(char *old_name, char *new_name) {
-    return rename(old_name, new_name);
+    char *sanitized_old_name = sanitize_path(old_name, current_proc->cwd);
+    if (!sanitized_old_name) {
+        return E_NOMEM;
+    }
+    char *sanitized_new_name = sanitize_path(new_name, current_proc->cwd);
+    if (!sanitized_new_name) {
+        free(sanitized_old_name);
+        return E_NOMEM;
+    }
+    int ret = rename(old_name, new_name);
+    free(sanitized_old_name);
+    free(sanitized_new_name);
+    return ret;
 }
