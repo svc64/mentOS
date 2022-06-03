@@ -207,7 +207,7 @@ void *realloc(void *ptr, size_t size) {
     }
     if (expandable_size <= size || (uintptr_t)ptr + size > HEAP_END) {
         // re-allocate the memory at a new address
-        void *new_alloc = malloc(size);
+        void *new_alloc = malloc_tagged(size, md->tag);
         if (new_alloc == NULL) {
             exit_critical_section();
             return NULL;

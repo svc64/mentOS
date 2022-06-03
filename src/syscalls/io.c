@@ -25,10 +25,12 @@ size_t syscall_input_read(char *dest, size_t size) {
         c = input_buffer_pop(front_proc->input_buffer);
         *dest++ = c;
         read++;
-    } while (c != '\0' && c != '\n');
+    } while (read != size);
     front_proc = NULL;
     proc_idle_release();
     return read;
 }
 
-void syscall_input_flush() {}
+void syscall_input_flush() {
+    input_buffer_wipe(current_proc->input_buffer);
+}

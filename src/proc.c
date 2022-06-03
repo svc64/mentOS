@@ -10,6 +10,7 @@
 #include "errors.h"
 #include "irq.h"
 #include "input_buffer.h"
+#include "path.h"
 
 #define DEFAULT_CWD "/"
 
@@ -256,9 +257,20 @@ void proc_exit(struct arm64_thread_state *state) {
             panic("no processes running!");
         } else {
             proc_wait();
+            proc_idle_release();
         }
     }
     panic("reached the end of proc_exit - we shouldn't be here");
+}
+
+// runs when we get a ctrl-d to stop the current process
+void proc_sigint() {
+    disable_irqs();
+    if (current_proc != NULL) {
+        if (!current_proc->sigint_blocked) {
+            current_proc_kill(SIGINT);
+        }
+    }
 }
 
 /* run this when we're in a syscall and the scheduler must not
@@ -289,4 +301,22 @@ void proc_idle_release() {
     for (unsigned int i = 0; i < MAX_PROC; i++) {
         proc_list[i]->idle = false;
     }
+}
+
+int proc_chdir(char *path, struct proc *p) {
+    enter_critical_section();
+    int dd = opendir(path);
+    if (dd < 0) {
+        return dd;
+    }
+    closedir(dd);
+    char *old_cwd = p->cwd;
+    char *new_cwd = malloc(strlen(path) + 1);
+    if (!new_cwd) {
+        return E_NOMEM;
+    }
+    strcpy(new_cwd, path);
+    p->cwd = new_cwd;
+    free(old_cwd);
+    exit_critical_section();
 }

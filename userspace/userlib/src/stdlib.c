@@ -1,4 +1,5 @@
-#include "stdlib.h"
+#include <stdlib.h>
+#include <stdint.h>
 
 #define ALIGNED(__x, __size) (!((uintptr_t)(__x) % (__size)))
 

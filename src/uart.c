@@ -31,23 +31,31 @@ void uart_interrupts_clear(uint32_t interrupts) {
     mmio_write(UART0_ICR, interrupts);
 }
 
+size_t uart_buffer_size = 0;
 void uart_recieved(char c) {
     if (c == '\x7f' || c == '\x8') {
-        uart_puts("\x1B[1D");
-        uart_puts("\x1B[1P");
-        if (front_proc != NULL) {
-            input_buffer_remove(front_proc->input_buffer);
+        if (uart_buffer_size) {
+            uart_puts("\x1B[1D");
+            uart_puts("\x1B[1P");
+            if (front_proc != NULL) {
+                input_buffer_remove(front_proc->input_buffer);
+            }
+            uart_buffer_size--;
         }
     } else if (c == '\r') {
         if (front_proc != NULL) {
             input_buffer_push(front_proc->input_buffer, '\n');
         }
         uart_puts("\r\n");
+        uart_buffer_size = 0;
+    } else if (c == '\x4') {
+        proc_sigint();
     } else if (c > 31 && c != 127) {
         if (front_proc != NULL) {
             input_buffer_push(front_proc->input_buffer, c);
         }
         uart_putc(c);
+        uart_buffer_size++;
     }
 }
 

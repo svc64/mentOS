@@ -20,6 +20,7 @@ struct proc {
     char *cwd;
     unsigned int pid;
     bool idle;
+    bool sigint_blocked;
 };
 
 #define EXECUTABLE_MAGIC 0x73746e6d
@@ -42,6 +43,8 @@ void proc_wait();
 void proc_next();
 void proc_idle();
 void proc_idle_release();
+int proc_chdir(char *path, struct proc *p);
+void proc_sigint();
 
 // the current process
 extern struct proc **proc_list;

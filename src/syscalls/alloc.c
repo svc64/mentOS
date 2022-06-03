@@ -19,6 +19,7 @@ void free_syscall(void *ptr) {
     if (allocation_exists_tag(ptr, current_proc)) {
         free(ptr);
     } else {
+        print("oops attempted to free nonexistant thingy: 0x%x\n", ptr);
         current_proc_kill(SIGSEGV);
         panic("free syscall: current_proc_kill returned");
     }
