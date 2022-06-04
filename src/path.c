@@ -145,5 +145,14 @@ char *sanitize_path(char *path, char *cwd) {
         }
     }
     free_split_path(split, components);
+    if (!strlen(sanitized_path)) {
+        char *slash = realloc(sanitized_path, sizeof("/"));
+        if (!slash) {
+            free(sanitized_path);
+            return NULL;
+        }
+        strcpy(slash, "/");
+        sanitized_path = slash;
+    }
     return sanitized_path;
 }

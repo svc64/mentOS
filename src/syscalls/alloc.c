@@ -3,6 +3,7 @@
 #include "alloc.h"
 #include "alloc_private.h"
 #include "signal.h"
+#include "print.h"
 
 void *malloc_syscall(size_t size) {
     if (!current_proc) {

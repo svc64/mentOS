@@ -5,6 +5,7 @@
 #include "files.h"
 #include "errors.h"
 #include "path.h"
+#include "alloc.h"
 
 int open_syscall(char *path, int mode) {
     char *sanitized_path = sanitize_path(path, current_proc->cwd);

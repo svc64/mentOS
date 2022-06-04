@@ -3,76 +3,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <proc.h>
-
-struct command {
-    char *executable;
-    char **argv;
-    int argc;
-    bool background;
-};
-
-void *malloc_noerror(size_t size) {
-    void *ret = malloc(size);
-    if (!ret) {
-        print("allocation of size %d failed!\n", size);
-        exit(1);
-    }
-    return ret;
-}
-
-void *realloc_noerror(void *ptr, size_t size) {
-    void *ret = realloc(ptr, size);
-    if (!ret) {
-        print("reallocation to size %d failed!\n", size);
-        exit(1);
-    }
-    return ret;
-}
-
-void cmd_add_arg(struct command *cmd, char *arg) {
-    if (!cmd->executable) {
-        cmd->executable = malloc_noerror(strlen(arg) + 1);
-        strcpy(cmd->executable, arg);
-    }
-    if (!cmd->argv) {
-        cmd->argc = 1;
-        cmd->argv = malloc_noerror(cmd->argc * sizeof(char *));
-        cmd->argv[0] = malloc_noerror(strlen(arg) + 1);
-        strcpy(cmd->argv[0], arg);
-    } else {
-        int new_argc = cmd->argc + 1;
-        char **argv = realloc_noerror(cmd->argv, new_argc * sizeof(char *));
-        argv[cmd->argc] = malloc_noerror(strlen(arg) + 1);
-        strcpy(argv[cmd->argc], arg);
-        cmd->argv = argv;
-        cmd->argc = new_argc;
-    }
-}
-
-void cmd_run(struct command *cmd) {
-    exec(cmd->executable, cmd->background);
-}
-
-void cmd_free(struct command *cmd) {
-    if (cmd->executable) {
-        free(cmd->executable);
-    }
-    for (int i = 0; i < cmd->argc; i++) {
-        if (cmd->argv[i]) {
-            free(cmd->argv[i]);
-        }
-    }
-    if (cmd->argv) {
-        free(cmd->argv);
-    }
-    free(cmd);
-}
-
-struct command *cmd_new(void) {
-    struct command *cmd = malloc_noerror(sizeof(struct command));
-    bzero(cmd, sizeof(struct command));
-    return cmd;
-}
+#include "cmd.h"
+#include "alloc.h"
 
 // str MUST begin with `q`, else bad things will go down
 // (caller will make sure of that anyways)

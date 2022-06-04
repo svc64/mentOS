@@ -25,7 +25,6 @@ extern uint8_t exception_vectors;
 // ESR (Exception Syndrome Register) EC (Exception Class, bits [31:26]) values
 #define EC_SVC64            0b010101 // SVC instruction execution in AArch64 state.
 
-
 void panic_unhandled_exc(int exception_type);
 void panic(const char *panic_msg);
 const char *exc_str(int exc);
