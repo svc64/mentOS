@@ -27,6 +27,13 @@ struct proc {
 struct __attribute__((__packed__)) mentos_executable {
     uint32_t magic; // Executable magic
     uint32_t entry_offset; // Entry point offset
+    uint32_t rela_start;
+    uint32_t rela_end;
+};
+
+#define R_AARCH64_RELATIVE 1027
+struct rela_entry {
+    uint64_t off, type, addend;
 };
 
 void proc_init();

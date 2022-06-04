@@ -79,6 +79,7 @@ int proc_new() {
             new_proc->exception_stack = (uintptr_t)exception_stack + STACK_SIZE;
             new_proc->state.cpsr = 0; // EL0
             new_proc->pid = i;
+            new_proc->cwd = cwd;
             proc_list[i] = new_proc;
             exit_critical_section();
             return new_proc->pid;
@@ -107,7 +108,6 @@ int proc_new_executable(const char *path) {
     }
     int fd = open(path, O_READ);
     if (fd < 0) {
-        print("failed to open executable %s\n", path);
         free(proc_list[pid]);
         proc_list[pid] = NULL;
         exit_critical_section();
@@ -115,7 +115,6 @@ int proc_new_executable(const char *path) {
     }
     ssize_t file_size = fsize(fd);
     if (file_size > 0xffffffff) {
-        print("executable too big: %s\n", path);
         close(fd);
         free(proc_list[pid]);
         proc_list[pid] = NULL;
@@ -140,7 +139,6 @@ int proc_new_executable(const char *path) {
         return size_read;
     }
     if (size_read != file_size) {
-        print("failed to read executable %s\n", path);
         close(fd);
         free_tag(proc_list[pid]);
         free(proc_list[pid]);
@@ -151,21 +149,34 @@ int proc_new_executable(const char *path) {
     close(fd);
     struct mentos_executable *exec = (struct mentos_executable *)executable_mem;
     if (exec->magic != EXECUTABLE_MAGIC) {
-        print("incorrect executable magic: 0x%x\n", exec->magic);
         free_tag(proc_list[pid]);
         free(proc_list[pid]);
         proc_list[pid] = NULL;
         exit_critical_section();
         return E_FORMAT;
     }
-    uintptr_t pc = executable_mem + exec->entry_offset;
-    if (pc >= executable_mem + file_size) {
-        print("entry point offset out of bounds in %s\n", path);
+    uintptr_t executable_end = executable_mem + file_size;
+    void *pc = executable_mem + exec->entry_offset;
+    struct rela_entry *rela = executable_mem + exec->rela_start;
+    struct rela_entry *rela_end = executable_mem + exec->rela_end;
+    if ((uintptr_t)pc >= executable_end || (uintptr_t)rela >= executable_end
+     || (uintptr_t)rela_end >= executable_end || rela_end < rela) {
         free_tag(proc_list[pid]);
         free(proc_list[pid]);
         proc_list[pid] = NULL;
         exit_critical_section();
         return E_OOB;
+    }
+    while (rela < rela_end) {
+        switch (rela->type) {
+            case R_AARCH64_RELATIVE:
+                *(uint64_t *)(executable_mem + rela->off) = executable_mem + rela->addend;
+                break;
+            default:
+                print("unknown relocation type %d\n", rela->type);
+                break;
+        }
+        rela++;
     }
     proc_list[pid]->state.pc = pc;
     exit_critical_section();
@@ -319,4 +330,5 @@ int proc_chdir(char *path, struct proc *p) {
     p->cwd = new_cwd;
     free(old_cwd);
     exit_critical_section();
+    return 0;
 }
