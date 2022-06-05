@@ -102,58 +102,43 @@ int proc_new_func(uintptr_t pc) {
 // Create a new process from an executable file
 int proc_new_executable(const char *path) {
     enter_critical_section();
+    int err = 0;
     int pid = proc_new();
     if (pid < 0) {
         return pid;
     }
     int fd = open(path, O_READ);
     if (fd < 0) {
-        free(proc_list[pid]);
-        proc_list[pid] = NULL;
-        exit_critical_section();
-        return fd; // fd is an error, return it.
+        err = fd;
+        goto fail;
     }
     ssize_t file_size = fsize(fd);
     if (file_size > 0xffffffff) {
         close(fd);
-        free(proc_list[pid]);
-        proc_list[pid] = NULL;
-        exit_critical_section();
-        return E_OOB;
+        err = E_OOB;
+        goto fail;
     }
     void *executable_mem = malloc_aligned_tagged(file_size, PAGE_SIZE, proc_list[pid]);
     if (!executable_mem) {
         close(fd);
-        free(proc_list[pid]);
-        proc_list[pid] = NULL;
-        exit_critical_section();
-        return E_OOB;
+        err = E_OOB;
+        goto fail;
     }
     ssize_t size_read = read(fd, executable_mem, file_size);
     if (size_read < 0) {
         close(fd);
-        free_tag(proc_list[pid]);
-        free(proc_list[pid]);
-        proc_list[pid] = NULL;
-        exit_critical_section();
-        return size_read;
+        err = size_read;
+        goto fail;
     }
     if (size_read != file_size) {
         close(fd);
-        free_tag(proc_list[pid]);
-        free(proc_list[pid]);
-        proc_list[pid] = NULL;
-        exit_critical_section();
-        return E_IOERR;
+        err = E_IOERR;
+        goto fail;
     }
-    close(fd);
     struct mentos_executable *exec = (struct mentos_executable *)executable_mem;
     if (exec->magic != EXECUTABLE_MAGIC) {
-        free_tag(proc_list[pid]);
-        free(proc_list[pid]);
-        proc_list[pid] = NULL;
-        exit_critical_section();
-        return E_FORMAT;
+        err = E_FORMAT;
+        goto fail;
     }
     uintptr_t executable_end = executable_mem + file_size;
     void *pc = executable_mem + exec->entry_offset;
@@ -161,11 +146,8 @@ int proc_new_executable(const char *path) {
     struct rela_entry *rela_end = executable_mem + exec->rela_end;
     if ((uintptr_t)pc >= executable_end || (uintptr_t)rela >= executable_end
      || (uintptr_t)rela_end >= executable_end || rela_end < rela) {
-        free_tag(proc_list[pid]);
-        free(proc_list[pid]);
-        proc_list[pid] = NULL;
-        exit_critical_section();
-        return E_OOB;
+        err = E_OOB;
+        goto fail;
     }
     while (rela < rela_end) {
         switch (rela->type) {
@@ -181,6 +163,12 @@ int proc_new_executable(const char *path) {
     proc_list[pid]->state.pc = pc;
     exit_critical_section();
     return pid;
+fail:
+    free_tag(proc_list[pid]);
+    free(proc_list[pid]);
+    proc_list[pid] = NULL;
+    exit_critical_section();
+    return err;
 }
 
 // switch to proc `p` for `time`, then return
