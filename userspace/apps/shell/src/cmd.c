@@ -29,11 +29,11 @@ void cmd_run(struct command *cmd) {
     if (count == 1) {
         // run this from PATH
         executable = join_paths("/bin/", cmd->executable);
-        exec_ret = exec(executable, cmd->background);
+        exec_ret = exec(executable, cmd->argv, cmd->background);
         free(executable);
     } else {
         executable = cmd->executable;
-        exec_ret = exec(cmd->executable, cmd->background);
+        exec_ret = exec(cmd->executable, cmd->argv, cmd->background);
     }
     if (exec_ret < 0) {
         switch (exec_ret) {
@@ -82,15 +82,16 @@ void cmd_add_arg(struct command *cmd, char *arg) {
     }
     if (!cmd->argv) {
         cmd->argc = 1;
-        cmd->argv = malloc_noerror(cmd->argc * sizeof(char *));
+        cmd->argv = malloc_noerror((cmd->argc + 1) * sizeof(char *));
         cmd->argv[0] = malloc_noerror(strlen(arg) + 1);
         strcpy(cmd->argv[0], arg);
     } else {
         int new_argc = cmd->argc + 1;
-        char **argv = realloc_noerror(cmd->argv, new_argc * sizeof(char *));
+        char **argv = realloc_noerror(cmd->argv, (new_argc + 1) * sizeof(char *));
         argv[cmd->argc] = malloc_noerror(strlen(arg) + 1);
         strcpy(argv[cmd->argc], arg);
         cmd->argv = argv;
         cmd->argc = new_argc;
     }
+    cmd->argv[cmd->argc] = NULL;
 }

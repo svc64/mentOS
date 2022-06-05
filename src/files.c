@@ -206,10 +206,12 @@ int opendir(char *path) {
     }
     dirs[dir] = malloc(sizeof(struct dir_d));
     if (dirs[dir] == NULL) {
+        print("malloc dir_d failed\n");
         return E_NOMEM;
     }
     dirs[dir]->d = malloc(sizeof(DIR));
     if (dirs[dir]->d == NULL) {
+        print("malloc DIR failed\n");
         return E_NOMEM;
     }
     dirs[dir]->end = false;

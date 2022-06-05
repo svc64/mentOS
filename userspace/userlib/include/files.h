@@ -1,4 +1,14 @@
 #include <stddef.h>
+#include <stdint.h>
+
+struct dirent {
+    uint8_t type;
+    char name[255];
+};
+
+#define DT_REG  0
+#define DT_DIR  1
+
 int open(char *path, int mode);
 size_t read(int fd, void *buf, size_t count);
 size_t write(int fd, void *buf, size_t count);

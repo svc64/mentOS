@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <io.h>
+#include <errors.h>
 
 void add_component(char *component, size_t len, char ***out, size_t count) {
     if (!(*out)) {

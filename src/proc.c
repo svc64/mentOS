@@ -12,7 +12,7 @@
 #include "input_buffer.h"
 #include "path.h"
 
-#define DEFAULT_CWD "/"
+#define MAX_ARGS    30
 
 struct proc **proc_list = NULL;
 struct proc *current_proc = NULL;
@@ -30,7 +30,7 @@ void proc_init() {
 }
 
 // create a new process
-int proc_new() {
+int proc_new(char *cwd) {
     enter_critical_section();
     for (int i = 0; i < MAX_PROC; i++) {
         if (proc_list[i] == NULL) {
@@ -41,10 +41,11 @@ int proc_new() {
                 return E_NOMEM;
             }
             bzero(new_proc, sizeof(struct proc));
-            char *cwd = malloc(sizeof(DEFAULT_CWD) + 1);
-            strcpy(cwd, DEFAULT_CWD);
-            if (!cwd) {
+            char *cwd_copy = malloc_tagged(strlen(cwd) + 1, new_proc);
+            strcpy(cwd_copy, cwd);
+            if (!cwd_copy) {
                 print("proc_new: failed to allocate cwd!\n");
+                free_tag(new_proc);
                 free(new_proc);
                 exit_critical_section();
                 return E_NOMEM;
@@ -79,7 +80,7 @@ int proc_new() {
             new_proc->exception_stack = (uintptr_t)exception_stack + STACK_SIZE;
             new_proc->state.cpsr = 0; // EL0
             new_proc->pid = i;
-            new_proc->cwd = cwd;
+            new_proc->cwd = cwd_copy;
             proc_list[i] = new_proc;
             exit_critical_section();
             return new_proc->pid;
@@ -91,7 +92,7 @@ int proc_new() {
 
 // Create a new process from a function
 int proc_new_func(uintptr_t pc) {
-    int pid = proc_new();
+    int pid = proc_new(DEFAULT_CWD);
     if (pid >= 0) {
         struct proc *p = proc_list[pid];
         p->state.pc = pc;
@@ -100,12 +101,15 @@ int proc_new_func(uintptr_t pc) {
 }
 
 // Create a new process from an executable file
-int proc_new_executable(const char *path) {
+int proc_new_executable(const char *path, char **argp, char *cwd) {
     enter_critical_section();
     int err = 0;
-    int pid = proc_new();
+    size_t argp_count = 0;
+    char **argp_copy = NULL;
+    int pid = proc_new(cwd);
     if (pid < 0) {
-        return pid;
+        err = pid;
+        goto fail;
     }
     int fd = open(path, O_READ);
     if (fd < 0) {
@@ -160,13 +164,38 @@ int proc_new_executable(const char *path) {
         }
         rela++;
     }
+    argp_copy = malloc_tagged(MAX_ARGS * sizeof(char *), proc_list[pid]);
+    if (!argp_copy) {
+        err = E_NOMEM;
+        goto fail;
+    }
+    while (argp[argp_count] && argp_count < MAX_ARGS) {
+        char *str_copy = malloc_tagged(malloc(strlen(argp[argp_count]) + 1), proc_list[pid]);
+        if (!str_copy) {
+            err = E_NOMEM;
+            goto fail;
+        }
+        strcpy(str_copy, argp[argp_count]);
+        argp_copy[argp_count++] = str_copy;
+    }
+    argp_copy[argp_count] = NULL;
+    char **argp_copy_realloc = realloc(argp_copy, argp_count * sizeof(char *));
+    if (!argp_copy_realloc) {
+        err = E_NOMEM;
+        goto fail;
+    }
+    argp_copy = argp_copy_realloc;
     proc_list[pid]->state.pc = pc;
+    proc_list[pid]->state.x[0] = argp_count;
+    proc_list[pid]->state.x[1] = argp_copy;
     exit_critical_section();
     return pid;
 fail:
-    free_tag(proc_list[pid]);
-    free(proc_list[pid]);
-    proc_list[pid] = NULL;
+    if (pid >= 0) {
+        free_tag(proc_list[pid]);
+        free(proc_list[pid]);
+        proc_list[pid] = NULL;
+    }
     exit_critical_section();
     return err;
 }

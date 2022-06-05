@@ -5,6 +5,7 @@
 #include "files.h"
 #include "path.h"
 #include "errors.h"
+#include "alloc.h"
 
 void exit_syscall(int exit_code) {
     if (current_proc == NULL) {
@@ -13,8 +14,9 @@ void exit_syscall(int exit_code) {
     current_proc_kill(exit_code);
 }
 
-int exec_syscall(char *path, bool background) {
+int exec_syscall(char *path, char **argp, bool background) {
     enter_critical_section();
+    int ret;
     if (current_proc == NULL) {
         panic("exec_syscall(): current_proc == NULL");
     }
@@ -22,7 +24,19 @@ int exec_syscall(char *path, bool background) {
     if (!sane_path) {
         return E_NOMEM;
     }
-    int ret = proc_new_executable(sane_path);
+    if (!argp) {
+        argp = malloc(2 * sizeof(char *));
+        if (!argp) {
+            free(sane_path);
+            return E_NOMEM;
+        }
+        argp[0] = path;
+        argp[1] = NULL;
+        ret = proc_new_executable(sane_path, argp, current_proc->cwd);
+        free(argp);
+    } else {
+        ret = proc_new_executable(sane_path, argp, current_proc->cwd);
+    }
     free(sane_path);
     if (ret < 0) {
         exit_critical_section();

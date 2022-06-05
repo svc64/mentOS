@@ -15,6 +15,8 @@ extern volatile unsigned char _end; // where our kernel image ends
 uint8_t *end = (uint8_t *)(&_end);
 FATFS *fs = NULL;
 
+char *shell_argv[] = {"/shell", NULL};
+
 void main() {
     disable_irqs();
     init_uart();
@@ -62,20 +64,10 @@ void main() {
     __asm__ __volatile__("mrs %0, CurrentEL\n\t" : "=r" (current_el) :  : "memory");
     current_el = (current_el >> 2) & 0x3;
     print("Running in EL%d\n", current_el);
-    int pid = proc_new_executable("/shell");
+    int pid = proc_new_executable("/shell", shell_argv, DEFAULT_CWD);
     if (pid < 0) {
         panic("failed to run shell!");
     }
-/*
-    int test2_pid = proc_new_executable("/2test");
-    if (test2_pid < 0) {
-        panic("failed to run test2 app!");
-    }
-    int test_pid = proc_new_executable("/test");
-    if (test_pid < 0) {
-        panic("failed to run test app!");
-    }
-*/
     print("created pid %d\n", pid);
     proc_enter(pid, PROC_TIME);
     panic("proc_enter returned. we shouldn't get here.");
