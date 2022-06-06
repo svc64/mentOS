@@ -108,6 +108,15 @@ char *remove_last_component(char *path) {
         }
     }
     free_split_path(split, components);
+    if (!strlen(sanitized_path)) {
+        free(sanitized_path);
+        char *workdir = malloc(sizeof("/"));
+        if (!workdir) {
+            return NULL;
+        }
+        strcpy(workdir, "/");
+        sanitized_path = workdir;
+    }
     return sanitized_path;
 }
 
@@ -118,6 +127,9 @@ char *sanitize_path(char *path, char *cwd) {
     if (!split) {
         return NULL;
     }
+    if (*(split[0]) == '/') {
+        cwd = "/";
+    }
     if (!strcmp(split[0], ".")) {
         free(split[0]);
         size_t current_path_len = strlen(cwd) + 1;
@@ -125,12 +137,12 @@ char *sanitize_path(char *path, char *cwd) {
         strcpy(current_path, cwd);
         split[0] = current_path;
     }
-    char *sanitized_path = malloc(1);
+    char *sanitized_path = malloc(strlen(cwd) + 1);
     if (!sanitized_path) {
         free_split_path(split, components);
         return NULL;
     }
-    sanitized_path[0] = '\0';
+    strcpy(sanitized_path, cwd);
     for (int i = 0; i < components; i++) {
         if (*(split[i]) != '/') {
             if (!strcmp(split[i], "..")) {
@@ -146,13 +158,13 @@ char *sanitize_path(char *path, char *cwd) {
     }
     free_split_path(split, components);
     if (!strlen(sanitized_path)) {
-        char *slash = realloc(sanitized_path, sizeof("/"));
-        if (!slash) {
-            free(sanitized_path);
+        free(sanitized_path);
+        char *workdir = malloc(strlen(cwd) + 1);
+        if (!workdir) {
             return NULL;
         }
-        strcpy(slash, "/");
-        sanitized_path = slash;
+        strcpy(workdir, cwd);
+        sanitized_path = workdir;
     }
     return sanitized_path;
 }
