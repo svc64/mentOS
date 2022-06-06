@@ -3,7 +3,7 @@
 #define E_UNKNOWN               -3 // Unknown error
 #define E_LIMIT                 -4 // Limit reached
 #define E_IOERR                 -5 // I/O error
-#define E_INVALID_DESCRIPTOR    -6 // Invalid file/folder descriptor
+#define E_INVALID_DESCRIPTOR    -6 // Invalid descriptor
 #define E_ACCESS                -7 // Access denied
 #define E_OOB                   -8 // Out of bounds
 #define E_NOMEM                 -9 // Out of memory

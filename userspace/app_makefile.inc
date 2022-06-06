@@ -15,8 +15,8 @@ OUT_FILE_ELF = $(BUILD_DIR)/$(APP_NAME).elf
 all: clean dirs $(APP_NAME)
 
 dirs:
-	mkdir -p $(BUILD_DIR)
-	mkdir -p $(OUT_DIR)
+	mkdir -p "`dirname $(OUT_FILE_ELF)`"
+	mkdir -p "`dirname $(OUT_FILE_RAW)`"
 
 $(BUILD_DIR)/%.s.o: %.s
 	mkdir -p $(dir $@)

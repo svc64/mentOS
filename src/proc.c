@@ -209,7 +209,9 @@ void proc_enter(int pid, unsigned int time) {
 
 // kill proc `pid` with `signal`
 void proc_kill(unsigned int pid, unsigned int signal) {
-    print("[%d] killed with signal %d\n", pid, signal);
+    if (signal) {
+        print("[%d] killed with signal %d\n", pid, signal);
+    }
     struct proc *p = proc_list[pid];
     for (size_t i = 0; i < MAX_DESCRIPTORS; i++) {
         if (fds[i] != NULL) {
@@ -347,5 +349,6 @@ int proc_chdir(char *path, struct proc *p) {
     p->cwd = new_cwd;
     free(old_cwd);
     exit_critical_section();
+    print("current dir: %s\n", p->cwd);
     return 0;
 }

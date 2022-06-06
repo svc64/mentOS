@@ -1,2 +1,2 @@
-APP_NAME = exec_me
+APP_NAME = /bin/mkdir
 include ../../app_makefile.inc
