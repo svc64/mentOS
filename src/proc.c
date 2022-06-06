@@ -349,6 +349,5 @@ int proc_chdir(char *path, struct proc *p) {
     p->cwd = new_cwd;
     free(old_cwd);
     exit_critical_section();
-    print("current dir: %s\n", p->cwd);
     return 0;
 }
