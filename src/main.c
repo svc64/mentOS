@@ -68,6 +68,7 @@ void main() {
     if (pid < 0) {
         panic("failed to run shell!");
     }
+    proc_list[pid]->sigint_blocked = true;
     print("created pid %d\n", pid);
     proc_enter(pid, PROC_TIME);
     panic("proc_enter returned. we shouldn't get here.");
