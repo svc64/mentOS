@@ -6,6 +6,7 @@
 #include "path.h"
 #include "errors.h"
 #include "alloc.h"
+#include "stdlib.h"
 
 void exit_syscall(int exit_code) {
     if (current_proc == NULL) {
@@ -92,4 +93,12 @@ void block_sigint_syscall() {
 
 void unblock_sigint_syscall() {
     current_proc->sigint_blocked = false;
+}
+
+int getcwd_syscall(char *buf, unsigned long size) {
+    if (size < strlen(current_proc->cwd) + 1) {
+        return E_NOMEM;
+    }
+    strcpy(buf, current_proc->cwd);
+    return 0;
 }

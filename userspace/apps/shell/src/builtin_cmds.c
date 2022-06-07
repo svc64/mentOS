@@ -24,6 +24,7 @@ void builtin_cmd_cd(int argc, char *argv[]) {
                     print("I/O error: %s\n", argv[1]);
                     break;
                 default:
+                    print("Unknown error (%d): %s\n", err, err_str(err));
                     break;
             }
         }
@@ -31,7 +32,30 @@ void builtin_cmd_cd(int argc, char *argv[]) {
         print("usage: cd [directory]\n");
     }
 }
+
+void builtin_cmd_cwd(int argc, char *argv[]) {
+    if (argc > 1) {
+        print("usage: cwd\n");
+        return;
+    }
+    char dir[4096];
+    int err = getcwd(dir, sizeof(dir));
+    if (err < 0) {
+        switch (err) {
+            case E_NOMEM:
+                print("cwd: path is too long\n");
+                break;
+            default:
+                print("Unknown error (%d): %s\n", err, err_str(err));
+                break;
+        }
+        return;
+    }
+    print("%s\n", dir);
+}
+
 struct cmd_handler builtin_cmds[] = {
     CMD_HANDLER("cd", builtin_cmd_cd),
+    CMD_HANDLER("cwd", builtin_cmd_cwd),
 };
 size_t builtin_cmds_count = sizeof(builtin_cmds) / sizeof(struct cmd_handler);
