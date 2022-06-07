@@ -35,4 +35,5 @@ syscall_table:
 /* 25 */    syscall syscall_input_flush 0
 /* 26 */    syscall block_sigint_syscall 0
 /* 27 */    syscall unblock_sigint_syscall 0
-syscall_table_size: .dword 28
+/* 28 */    syscall kill_syscall 32
+syscall_table_size: .dword 29

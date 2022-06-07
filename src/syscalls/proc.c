@@ -60,6 +60,32 @@ int chdir_syscall(char *path) {
     return ret;
 }
 
+int kill_syscall(int pid, int signal) {
+    if (!pid) {
+        panic("attempted to kill init!\n");
+    }
+    if (signal >= 0) {
+        return E_PARAM;
+    }
+    enter_critical_section();
+    if (pid >= MAX_PROC) {
+        return E_NXPROC;
+    }
+    if (!proc_list[pid]) {
+        return E_NXPROC;
+    }
+    bool next = false;
+    if (proc_list[pid] == current_proc) {
+        next = true;
+    }
+    proc_kill(pid, signal);
+    exit_critical_section();
+    if (next) {
+        proc_next();
+    }
+    return 0;
+}
+
 void block_sigint_syscall() {
     current_proc->sigint_blocked = true;
 }

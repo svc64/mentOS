@@ -1,10 +1,15 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include "io.h"
-void print_num(uint64_t num, int base) {
-    uint64_t digitCount = 0;
+
+void print_num(int64_t num, int base) {
+    if (num < 0) {
+        num = -num;
+        putc('-');
+    }
+    int digitCount = 0;
     // count how many digits we have to print
-    for (uint64_t c = num; c; c /= base) {
+    for (int64_t c = num; c; c /= base) {
         digitCount++;
     }
     if (!digitCount) {
@@ -14,8 +19,8 @@ void print_num(uint64_t num, int base) {
     }
     // put them all in an array
     char digits[digitCount];
-    uint64_t arrayPos = digitCount-1;
-    for (uint64_t c = num; (c && arrayPos >= 0); c /= base) {
+    int arrayPos = digitCount-1;
+    for (int64_t c = num; (c && arrayPos >= 0); c /= base) {
         char digit = c % base;
         // convert to ASCII
         switch (base) {
@@ -36,7 +41,7 @@ void print_num(uint64_t num, int base) {
         arrayPos--;
     }
     // print
-    for (uint64_t i = 0; i < digitCount; i++) {
+    for (int i = 0; i < digitCount; i++) {
         putc(digits[i]);
     }
 }
@@ -48,7 +53,7 @@ void print(const char *fmt, ...) {
         if (fmt[0] == '%') {
             fmt++;
             if (fmt[0] == 'd') {
-                uint64_t num = va_arg(args, uint64_t);
+                int num = va_arg(args, int);
                 print_num(num, 10);
             }
             if (fmt[0] == 'x') {

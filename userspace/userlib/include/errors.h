@@ -10,4 +10,6 @@
 #define E_BUSY                 -10 // Resource busy
 #define E_EXISTS               -11 // Already exists
 #define E_FORMAT               -12 // Incorrect format
+#define E_NXPROC               -13 // No such process
+#define E_PARAM                -14 // Invalid parameter
 char *err_str(int err);

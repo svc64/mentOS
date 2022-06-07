@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #define ALIGNED(__x, __size) (!((uintptr_t)(__x) % (__size)))
 
@@ -174,4 +175,22 @@ int strcmp(const char *s1, const char *s2) {
         s2++;
     }
     return *(const unsigned char*)s1 - *(const unsigned char*)s2;
+}
+
+int atoi(char *s) {
+    int n = 0;
+    bool neg = false;
+    if (*s == '-') {
+        neg = true;
+        s++;
+    } else if (*s == '+') {
+        s++;
+    }
+    for (int i = 0; s[i] != '\0'; i++) {
+        if (s[i] < '0' || s[i] > '9') {
+            return 0;
+        }
+        n = n * 10 + s[i] - '0';
+    }
+    return (neg ? -n : n);
 }

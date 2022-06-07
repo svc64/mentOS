@@ -208,7 +208,7 @@ void proc_enter(int pid, unsigned int time) {
 }
 
 // kill proc `pid` with `signal`
-void proc_kill(unsigned int pid, unsigned int signal) {
+void proc_kill(unsigned int pid, int signal) {
     if (signal) {
         print("[%d] killed with signal %d\n", pid, signal);
     }
@@ -218,6 +218,7 @@ void proc_kill(unsigned int pid, unsigned int signal) {
             if (fds[i]->proc == p) {
                 if (close(i)) {
                     print("[%d] failed to close file descriptor %d\n", pid, i);
+                } else {
                     print("[%d] kernel closed file %d\n", pid, i);
                 }
             }
@@ -240,7 +241,10 @@ void proc_kill(unsigned int pid, unsigned int signal) {
             }
         }
     }
-    current_proc = NULL; // TODO: this can race with the next line (proc_list[pid] = NULL) in proc_exit. fix this if and when we implement SMP.
+    // TODO: this can race with the next line (proc_list[pid] = NULL) in proc_exit. fix this if and when we implement SMP.
+    if (current_proc == p) {
+        current_proc = NULL;
+    }
     proc_list[pid] = NULL; // context switcher shall not switch anymore.
     // free memory
     input_buffer_free(p->input_buffer);

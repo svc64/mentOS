@@ -27,6 +27,10 @@ char *err_str(int err) {
             return "Already exists";
         case E_FORMAT:
             return "Incorrect format";
+        case E_NXPROC:
+            return "No such process";
+        case E_PARAM:
+            return "Invalid parameter";
         default:
             return NULL;
     }
