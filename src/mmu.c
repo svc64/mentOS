@@ -117,6 +117,7 @@ void map_region(uintptr_t virt, uintptr_t phys_addr, size_t size, uintptr_t attr
         }
     }    
 }
+
 void init_mmu() {
     //uint64_t id_aa64mmfr0_el1;
     //asm volatile ("mrs %0, id_aa64mmfr0_el1" : "=r" (id_aa64mmfr0_el1));
