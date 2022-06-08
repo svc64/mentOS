@@ -20,12 +20,19 @@ int main(int argc, const char *argv[]) {
         if ((*argv[i]) == '-') {
             if (i == 1) {
                 signal = atoi(argv[i]);
+                if (!signal) {
+                    print("invalid signal: %s\n", argv[i]);
+                }
             } else {
                 print("invalid PID: %d\n", argv[i]);
                 return 1;
             }
         } else {
             int pid = atoi(argv[i]);
+            if (!pid) {
+                print("invalid PID: %s\n", argv[i]);
+                return 1;
+            }
             int err = kill(pid, signal);
             if (err < 0) {
                 switch (err) {
