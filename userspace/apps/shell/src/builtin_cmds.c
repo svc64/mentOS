@@ -33,9 +33,9 @@ void builtin_cmd_cd(int argc, char *argv[]) {
     }
 }
 
-void builtin_cmd_cwd(int argc, char *argv[]) {
+void builtin_cmd_pwd(int argc, char *argv[]) {
     if (argc > 1) {
-        print("usage: cwd\n");
+        print("usage: pwd\n");
         return;
     }
     char dir[4096];
@@ -54,8 +54,13 @@ void builtin_cmd_cwd(int argc, char *argv[]) {
     print("%s\n", dir);
 }
 
+void builtin_cmd_exit(int argc, char *argv[]) {
+    exit(0);
+}
+
 struct cmd_handler builtin_cmds[] = {
     CMD_HANDLER("cd", builtin_cmd_cd),
-    CMD_HANDLER("cwd", builtin_cmd_cwd),
+    CMD_HANDLER("pwd", builtin_cmd_pwd),
+    CMD_HANDLER("exit", builtin_cmd_exit),
 };
 size_t builtin_cmds_count = sizeof(builtin_cmds) / sizeof(struct cmd_handler);
