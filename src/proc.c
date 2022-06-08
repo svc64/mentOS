@@ -211,11 +211,7 @@ void proc_enter(int pid, unsigned int time) {
     proc_state_drop(&(current_proc->state), current_proc->exception_stack);
 }
 
-// kill proc `pid` with `signal`
-void proc_kill(unsigned int pid, int signal) {
-    if (signal) {
-        print("[%d] killed with signal %d\n", pid, signal);
-    }
+void proc_end(int pid) {
     struct proc *p = proc_list[pid];
     for (size_t i = 0; i < MAX_DESCRIPTORS; i++) {
         if (fds[i] != NULL) {
@@ -256,10 +252,29 @@ void proc_kill(unsigned int pid, int signal) {
     free(p);
 }
 
+// kill proc `pid` with `signal`
+void proc_kill(unsigned int pid, int signal) {
+    print("[%d] killed with signal %d\n", pid, signal);
+    proc_end(pid);
+}
+
+void proc_exit_status(unsigned int pid, int status) {
+    if (status) {
+        print("[%d] exited with status %d\n", pid, status);
+    }
+    proc_end(pid);
+}
+
 // kill the current process and move to another one
 void current_proc_kill(int signal) {
     disable_irqs();
     proc_kill(current_proc->pid, signal);
+    proc_exit(NULL); // move on
+}
+
+void current_proc_exit(int status) {
+    disable_irqs();
+    proc_exit_status(current_proc->pid, status);
     proc_exit(NULL); // move on
 }
 

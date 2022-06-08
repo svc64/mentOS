@@ -12,7 +12,7 @@ void exit_syscall(int exit_code) {
     if (current_proc == NULL) {
         panic("exit_syscall(): current_proc == NULL");
     }
-    current_proc_kill(exit_code);
+    current_proc_exit(exit_code);
 }
 
 int exec_syscall(char *path, char **argp, bool background) {

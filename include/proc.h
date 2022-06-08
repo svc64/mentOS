@@ -55,6 +55,8 @@ void proc_idle();
 void proc_idle_release();
 int proc_chdir(char *path, struct proc *p);
 void proc_sigint();
+void proc_exit_status(unsigned int pid, int status);
+void current_proc_exit(int status);
 
 // the current process
 extern struct proc **proc_list;
