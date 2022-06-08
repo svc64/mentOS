@@ -134,6 +134,7 @@ int proc_new_executable(const char *path, char **argp, char *cwd) {
         err = size_read;
         goto fail;
     }
+    close(fd);
     if (size_read != file_size) {
         close(fd);
         err = E_IOERR;
@@ -149,7 +150,9 @@ int proc_new_executable(const char *path, char **argp, char *cwd) {
     struct rela_entry *rela = executable_mem + exec->rela_start;
     struct rela_entry *rela_end = executable_mem + exec->rela_end;
     if ((uintptr_t)pc >= executable_end || (uintptr_t)rela >= executable_end
-     || (uintptr_t)rela_end >= executable_end || rela_end < rela) {
+        || (uintptr_t)rela_end >= executable_end || rela_end < rela ||
+        exec->bss_start >= executable_end || exec->bss_end >= executable_end ||
+        exec->bss_end < exec->bss_start) {
         err = E_OOB;
         goto fail;
     }
@@ -164,6 +167,7 @@ int proc_new_executable(const char *path, char **argp, char *cwd) {
         }
         rela++;
     }
+    bzero(executable_mem + exec->bss_start, exec->bss_end - exec->bss_start);
     argp_copy = malloc_tagged(MAX_ARGS * sizeof(char *), proc_list[pid]);
     if (!argp_copy) {
         err = E_NOMEM;

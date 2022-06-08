@@ -9,6 +9,8 @@ SECTIONS
         LONG(start)
         LONG(_rela_start)
         LONG(_rela_end)
+        LONG(__bss_start)
+        LONG(__bss_end)
     }
     .text : {
         KEEP(*(.text.boot))
