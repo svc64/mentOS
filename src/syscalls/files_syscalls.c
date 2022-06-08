@@ -131,7 +131,9 @@ int mkdir_syscall(char *path) {
     if (!sanitized_path) {
         return E_NOMEM;
     }
-    return mkdir(sanitized_path);
+    int ret = mkdir(sanitized_path);
+    free(sanitized_path);
+    return ret;
 }
 
 int unlink_syscall(char *path) {
@@ -139,7 +141,9 @@ int unlink_syscall(char *path) {
     if (!sanitized_path) {
         return E_NOMEM;
     }
-    return unlink(sanitized_path);
+    int ret = unlink(sanitized_path);
+    free(sanitized_path);
+    return ret;
 }
 
 int rename_syscall(char *old_name, char *new_name) {
@@ -155,5 +159,15 @@ int rename_syscall(char *old_name, char *new_name) {
     int ret = rename(old_name, new_name);
     free(sanitized_old_name);
     free(sanitized_new_name);
+    return ret;
+}
+
+int stat_syscall(const char *path, struct stat *out) {
+    char *sanitized_path = sanitize_path(path, current_proc->cwd);
+    if (!sanitized_path) {
+        return E_NOMEM;
+    }
+    int ret = stat(sanitized_path, out);
+    free(sanitized_path);
     return ret;
 }

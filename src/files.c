@@ -311,6 +311,17 @@ int mkdir(char *path) {
 }
 
 int unlink(char *path) {
+    int dir_d = opendir(path);
+    if (dir_d >= 0) {
+        struct dirent ent;
+        int err = read_dir(dir_d, &ent);
+        closedir(dir_d);
+        if (err < 0 && err != E_OOB) {
+            return err;
+        } else if (!err) {
+            return E_NOTEMPTY;
+        }
+    }
     enter_critical_section();
     FRESULT res = f_unlink(path);
     exit_critical_section();
@@ -326,6 +337,8 @@ int unlink(char *path) {
                 return E_IOERR;
             case FR_LOCKED:
                 return E_BUSY;
+            case FR_DENIED:
+                return E_ACCESS;
             default:
                 return E_UNKNOWN;
         }
@@ -352,6 +365,34 @@ int rename(char *old_name, char *new_name) {
             default:
                 return E_UNKNOWN;
         }
+    }
+    return 0;
+}
+
+int stat(const char *path, struct stat *out) {
+    enter_critical_section();
+    FILINFO info;
+    FRESULT res = f_stat(path, &info);
+    exit_critical_section();
+    if (res) {
+        switch (res)
+        {
+            case FR_NO_PATH:
+            case FR_NO_FILE:
+                return E_NXFILE;
+            case FR_INVALID_NAME:
+                return E_INVALID_PATH;
+            case FR_DISK_ERR:
+                return E_IOERR;
+            default:
+                return E_UNKNOWN;
+        }
+    }
+    out->size = 0;
+    if (info.fattrib & AM_DIR) {
+        out->type = DT_DIR;
+    } else {
+        out->type = DT_REG;
     }
     return 0;
 }

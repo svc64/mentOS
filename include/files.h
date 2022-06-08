@@ -26,6 +26,12 @@ struct fd {
     FIL *f; // FatFs file
     struct proc *proc; // Owning proc
 };
+
+struct stat {
+    uint8_t type;
+    size_t size;
+};
+
 extern struct dir_d *dirs[MAX_DESCRIPTORS];
 extern struct fd *fds[MAX_DESCRIPTORS];
 int open(char *path, int mode);
@@ -42,3 +48,4 @@ int closedir(int dir);
 int mkdir(char *path);
 int unlink(char *path);
 int rename(char *old_name, char *new_name);
+int stat(const char *path, struct stat *out);

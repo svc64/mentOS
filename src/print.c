@@ -63,6 +63,10 @@ void print(const char *fmt, ...) {
                 const char *s = va_arg(args, const char *);
                 uart_puts(s);
             }
+            if (fmt[0] == 'c') {
+                char c = va_arg(args, char);
+                uart_putc(c);
+            }
         } else {
             uart_putc(fmt[0]);
             if (fmt[0] == '\n') {

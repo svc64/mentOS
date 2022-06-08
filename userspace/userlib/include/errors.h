@@ -12,4 +12,5 @@
 #define E_FORMAT               -12 // Incorrect format
 #define E_NXPROC               -13 // No such process
 #define E_PARAM                -14 // Invalid parameter
+#define E_NOTEMPTY             -15 // Directory not empty
 char *err_str(int err);

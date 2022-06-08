@@ -9,3 +9,4 @@ syscall closedir 14
 syscall mkdir 15
 syscall unlink 16
 syscall rename 17
+syscall stat 30

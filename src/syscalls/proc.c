@@ -17,6 +17,7 @@ void exit_syscall(int exit_code) {
 
 int exec_syscall(char *path, char **argp, bool background) {
     enter_critical_section();
+    bool front = false;
     int ret;
     if (current_proc == NULL) {
         panic("exec_syscall(): current_proc == NULL");
@@ -45,9 +46,16 @@ int exec_syscall(char *path, char **argp, bool background) {
     }
     if (!background) {
         current_proc->blocking_child = proc_list[ret];
+        if (front_proc == current_proc) {
+            front = true;
+            front_proc = NULL;
+        }
     }
     exit_critical_section();
     proc_next();
+    if (front) {
+        front_proc = current_proc;
+    }
     return ret;
 }
 

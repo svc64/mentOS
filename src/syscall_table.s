@@ -37,4 +37,5 @@ syscall_table:
 /* 27 */    syscall unblock_sigint_syscall 0
 /* 28 */    syscall kill_syscall 32
 /* 29 */    syscall getcwd_syscall 32
-syscall_table_size: .dword 30
+/* 30 */    syscall stat_syscall 32
+syscall_table_size: .dword 31

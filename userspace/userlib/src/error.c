@@ -31,6 +31,8 @@ char *err_str(int err) {
             return "No such process";
         case E_PARAM:
             return "Invalid parameter";
+        case E_NOTEMPTY:
+            return "Directory not empty";
         default:
             return NULL;
     }

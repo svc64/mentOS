@@ -67,6 +67,10 @@ void print(const char *fmt, ...) {
                     s++;
                 }
             }
+            if (fmt[0] == 'c') {
+                char c = va_arg(args, char);
+                putc(c);
+            }
         } else {
             putc(fmt[0]);
             if (fmt[0] == '\n') {

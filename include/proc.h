@@ -30,6 +30,8 @@ struct __attribute__((__packed__)) mentos_executable {
     uint32_t entry_offset; // Entry point offset
     uint32_t rela_start;
     uint32_t rela_end;
+    uint32_t bss_start;
+    uint32_t bss_end;
 };
 
 #define R_AARCH64_RELATIVE 1027
