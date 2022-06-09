@@ -5,6 +5,7 @@
 #include "proc.h"
 #include "irq.h"
 #include "sysreg.h"
+#include "signal.h"
 
 // exception number to string
 const char *exc_str(int exc) {
@@ -53,26 +54,36 @@ const char *exc_str(int exc) {
 
 void el0_sync_handler(struct arm64_thread_state *state, int exc, uint64_t esr) {
     print("ESR: 0x%x\n", esr);
+    uint64_t far;
+    __asm__ __volatile__("mrs %0, far_el1\n\t" : "=r" (far) :  : "memory");
     switch (ESR_ELx_EC(esr)) {
         case ESR_EL1_EC_ILLEGAL_EXEC:
             panic("Illegal Execution state!");
-        case ESR_EL1_EC_WFI_WFE:
         case ESR_EC_BRK64:
         case ESR_EC_BRK_DBG_EL0:
+            print("Breakpoint instruction at 0x%x\n", state->pc);
+            current_proc_kill(SIGTRAP);
+        case ESR_EL1_EC_WFI_WFE:
         case ESR_EL1_EC_MRS_MSR_64:
-            panic("Illegal instruction!");
+            print("Illegal instruction at 0x%x\n", state->pc);
+            current_proc_kill(SIGILL);
         case ESR_EL1_EC_IABT_LEL:
-            panic("Instruction fetch error: Invalid PC <TODO: print pc here>");
+            print("Instruction fetch error: Invalid PC: 0x%x\n", state->pc);
+            current_proc_kill(SIGBUS);
         case ESR_EL1_EC_SVC_64:
             panic("syscall hit el0_sync_handler instead of the syscall handler");
         case ESR_EL1_EC_PC_ALIGN:
-            panic("PC alignment fault!");
+            print("PC alignment fault: 0x%x\n", far);
+            current_proc_kill(SIGBUS);
         case ESR_EL1_EC_DABT_LEL:
-            panic("Data abort!\n");
+            print("Data abort: 0x%x\n", far);
+            current_proc_kill(SIGSEGV);
         case ESR_EL1_EC_SP_ALIGN:
-            panic("SP alignment fault!");
+            print("SP alignment fault: 0x%x\n", far);
+            current_proc_kill(SIGSEGV);
         case ESR_EL1_EC_FP_64:
-            panic("FPU exception!");
+            print("FPU exception!");
+            current_proc_kill(SIGBUS);
         case ESR_EL1_EC_SError:
             panic("EL0 SError");
         case ESR_EL1_EC_UNKNOWN:
