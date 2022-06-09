@@ -56,7 +56,7 @@ void print(const char *fmt, ...) {
                 print_num(num, 10);
             }
             if (fmt[0] == 'x') {
-                int num = va_arg(args, int);
+                uint64_t num = va_arg(args, uint64_t);
                 print_num(num, 16);
             }
             if (fmt[0] == 's') {
