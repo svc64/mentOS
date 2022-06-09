@@ -1,5 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
+// Signed size
+typedef long ssize_t;
 
 struct dirent {
     uint8_t type;
@@ -14,9 +16,13 @@ struct stat {
     size_t size;
 };
 
+#define O_READ      0
+#define O_WRITE     1
+#define O_CREATE    2
+
 int open(char *path, int mode);
-size_t read(int fd, void *buf, size_t count);
-size_t write(int fd, void *buf, size_t count);
+ssize_t read(int fd, void *buf, size_t count);
+ssize_t write(int fd, void *buf, size_t count);
 int close(int fd);
 int opendir(char *path);
 int read_dir(int dir, struct dirent *ent);
