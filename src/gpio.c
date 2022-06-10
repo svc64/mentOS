@@ -47,6 +47,7 @@ int gpio_pin_set_io(uint8_t pin, uint8_t io_state) {
     gpio_pins_state[pin] = io_state;
     mmio_write(gpio_reg, r);
     delay(150);
+    return 0;
 }
 
 // change the state of an output pin
