@@ -10,6 +10,7 @@
 #define GPSET0              (GPIO_BASE + 0x1C)
 #define GPSET1              (GPIO_BASE + 0x20)
 #define GPCLR0              (GPIO_BASE + 0x28)
+#define GPCLR1              (GPIO_BASE + 0x2C)
 #define GPLEV0              (GPIO_BASE + 0x34)
 #define GPLEV1              (GPIO_BASE + 0x38)
 #define GPEDS0              (GPIO_BASE + 0x40)
@@ -29,5 +30,8 @@
 #define GPIO_UP              1
 
 void init_gpio();
+void gpio_reserve(uint8_t pin);
+void gpio_unreserve(uint8_t pin);
 int gpio_pin_set_io(uint8_t pin, uint8_t io_state);
 int gpio_set(uint8_t pin, uint8_t state);
+int gpio_get(uint8_t pin);

@@ -63,6 +63,10 @@ void init_uart() {
     // disable UART0 (while we're setting it up)
     mmio_write(UART0_CR, 0);
 
+    // reserve pins 14 and 15
+    gpio_reserve(14);
+    gpio_reserve(15);
+
     // configure GPIO functions
     uint32_t sel1 = mmio_read(GPFSEL1);
     // bits 12:14 = 0b100 (alternative function: UART TX)
@@ -70,10 +74,6 @@ void init_uart() {
     sel1 &= ~((0b111 << 12) | (0b111 << 15)); // clear GPIO 14/15
     sel1 |= (0b100 << 12) | (0b100 << 15);    // set alternative functions
     mmio_write(GPFSEL1, sel1);
-
-    // disable all GPIO pins
-    mmio_write(GPPUD, 0);
-    delay(150);
 
     // we're using pins 14 and 15 for UART0 so we have to disable them for GPIO
     mmio_write(GPPUDCLK0, (1 << 14) | (1 << 15));

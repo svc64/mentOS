@@ -38,4 +38,7 @@ syscall_table:
 /* 28 */    syscall kill_syscall 32
 /* 29 */    syscall getcwd_syscall 32
 /* 30 */    syscall stat_syscall 32
-syscall_table_size: .dword 31
+/* 31 */    syscall gpio_pin_set_io_syscall 32
+/* 32 */    syscall gpio_set_syscall 32
+/* 33 */    syscall gpio_get_syscall 32
+syscall_table_size: .dword 34

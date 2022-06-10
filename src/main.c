@@ -20,8 +20,8 @@ char *shell_argv[] = {"/shell", NULL};
 
 void main() {
     disable_irqs();
-    init_uart();
     init_gpio();
+    init_uart();
     print("it's alive\n");
     // Set exception vectors
     __asm__ __volatile__("msr vbar_el1, %0\n\t; isb" : : "r" (&exception_vectors) : "memory");
@@ -59,8 +59,6 @@ void main() {
     // initialize the proc struct list
     proc_init();
     print("mentOS\n-------\n");
-    gpio_pin_set_io(21, GPIO_OUTPUT);
-    gpio_set(21, GPIO_UP);
     print("main addr: 0x%x\n", &main);
     print("_end: 0x%x\n", &_end);
     print("ramdisk size: 0x%x\n", ramdisk_size);
