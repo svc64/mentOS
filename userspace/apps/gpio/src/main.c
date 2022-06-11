@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <io.h>
 #include <gpio.h>
+#include <proc.h>
 
 char *app_name = "gpio";
 
@@ -15,15 +16,19 @@ bool is_str_number(char *s) {
     return true;
 }
 
-int main(int argc, const char *argv[]) {
-    if (argc < 3) {
-        if (argc) {
-            app_name = argv[0];
-        }
+void print_usage_exit() {
         print("usage:\n");
         print("%s [get/set_as_output/set_as_input] [pin number]\n", app_name);
         print("%s set [pin number] [state]\n", app_name);
-        return 1;
+        exit(1);
+}
+
+int main(int argc, const char *argv[]) {
+    if (argc) {
+        app_name = argv[0];
+    }
+    if (argc < 3) {
+        print_usage_exit();
     }
     char *action = argv[1];
     char *pin_num_str = argv[2];
@@ -38,14 +43,16 @@ int main(int argc, const char *argv[]) {
     }
     int ret;
     if (!strcmp(action, "get")) {
+        if (argc != 3) {
+            print_usage_exit();
+        }
         ret = gpio_get(pin_num);
          if (ret >= 0) {
             print("Current state of input pin %d: %d\n", pin_num, ret);
         }
     } else if (!strcmp(action, "set")) {
         if (argc != 4) {
-            print("error: no state argument\n");
-            return 1;
+            print_usage_exit();
         }
         char *state_arg = argv[3];
         if (!is_str_number(state_arg)) {
@@ -62,11 +69,17 @@ int main(int argc, const char *argv[]) {
             print("Set output pin %d to %d\n", pin_num, pin_state);
         }
     } else if (!strcmp(action, "set_as_output")) {
+        if (argc != 3) {
+            print_usage_exit();
+        }
         ret = gpio_pin_set_io(pin_num, GPIO_OUTPUT);
         if (ret >= 0) {
             print("Pin %d set as output\n", pin_num);
         }
     } else if (!strcmp(action, "set_as_input")) {
+        if (argc != 3) {
+            print_usage_exit();
+        }
         ret = gpio_pin_set_io(pin_num, GPIO_INPUT);
         if (ret >= 0) {
             print("Pin %d set as input\n", pin_num);
