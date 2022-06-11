@@ -35,19 +35,17 @@ SECTIONS
         *(.rela.dyn)
         _rela_end = .;
     }
-    . = ALIGN(4096);
     PROVIDE(_data = .);
     .bss (NOLOAD) : {
         . = ALIGN(16);
         __bss_start = .;
         *(.bss .bss.*)
         *(COMMON)
+        . = ALIGN(16);
         __bss_end = .;
     }
-    . = ALIGN(4096);
     .data : {
          *(.data .data.* .gnu.linkonce.d*) 
-         . = ALIGN(4096);
     }
 
    /DISCARD/ : { *(.comment) *(.gnu*) *(.note*) *(.eh_frame*) }

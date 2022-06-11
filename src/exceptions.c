@@ -9,53 +9,51 @@
 
 // exception number to string
 const char *exc_str(int exc) {
-    switch (exc)
-    {
-    case EXC_SYNC_EL1t:
-        return "Synchronous, EL1t";
-    case EXC_IRQ_EL1t:
-        return "IRQ, EL1t";
-    case EXC_FIQ_EL1t:
-        return "FIQ, EL1t";
-    case EXC_SERROR_EL1t:
-        return "SError, EL1t";
+    switch (exc) {
+        case EXC_SYNC_EL1t:
+            return "Synchronous, EL1t";
+        case EXC_IRQ_EL1t:
+            return "IRQ, EL1t";
+        case EXC_FIQ_EL1t:
+            return "FIQ, EL1t";
+        case EXC_SERROR_EL1t:
+            return "SError, EL1t";
 
-    case EXC_SYNC_EL1h:
-        return "Synchronous, EL1h";
-    case EXC_IRQ_EL1h:
-        return "IRQ, EL1h";
-    case EXC_FIQ_EL1h:
-        return "FIQ, EL1h";
-    case EXC_SERROR_EL1h:
-        return "SError, EL1h";
+        case EXC_SYNC_EL1h:
+            return "Synchronous, EL1h";
+        case EXC_IRQ_EL1h:
+            return "IRQ, EL1h";
+        case EXC_FIQ_EL1h:
+            return "FIQ, EL1h";
+        case EXC_SERROR_EL1h:
+            return "SError, EL1h";
 
-    case EXC_SYNC_EL0_64:
-        return "Synchronous, EL0 (64 bit)";
-    case EXC_IRQ_EL0_64:
-        return "IRQ, EL0 (64 bit)";
-    case EXC_FIQ_EL0_64:
-        return "FIQ, EL0 (64 bit)";
-    case EXC_SERROR_EL0_64:
-        return "SError, EL0 (64 bit)";
+        case EXC_SYNC_EL0_64:
+            return "Synchronous, EL0 (64 bit)";
+        case EXC_IRQ_EL0_64:
+            return "IRQ, EL0 (64 bit)";
+        case EXC_FIQ_EL0_64:
+            return "FIQ, EL0 (64 bit)";
+        case EXC_SERROR_EL0_64:
+            return "SError, EL0 (64 bit)";
 
-    case EXC_SYNC_EL0_32:
-        return "Synchronous, EL0 (32 bit)";
-    case EXC_IRQ_EL0_32:
-        return "IRQ, EL0 (32 bit)";
-    case EXC_FIQ_EL0_32:
-        return "FIQ, EL0 (32 bit)";
-    case EXC_SERROR_EL0_32:
-        return "SError, EL0 (32 bit)";
+        case EXC_SYNC_EL0_32:
+            return "Synchronous, EL0 (32 bit)";
+        case EXC_IRQ_EL0_32:
+            return "IRQ, EL0 (32 bit)";
+        case EXC_FIQ_EL0_32:
+            return "FIQ, EL0 (32 bit)";
+        case EXC_SERROR_EL0_32:
+            return "SError, EL0 (32 bit)";
 
-    default:
-        return NULL;
+        default:
+            return NULL;
     }
 }
 
 void el0_sync_handler(struct arm64_thread_state *state, int exc, uint64_t esr) {
-    print("ESR: 0x%x\n", esr);
     uint64_t far;
-    __asm__ __volatile__("mrs %0, far_el1\n\t" : "=r" (far) :  : "memory");
+    __asm__ __volatile__("mrs %0, far_el1" : "=r" (far) :  : "memory");
     switch (ESR_ELx_EC(esr)) {
         case ESR_EL1_EC_ILLEGAL_EXEC:
             panic("Illegal Execution state!");
@@ -65,6 +63,7 @@ void el0_sync_handler(struct arm64_thread_state *state, int exc, uint64_t esr) {
             current_proc_kill(SIGTRAP);
         case ESR_EL1_EC_WFI_WFE:
         case ESR_EL1_EC_MRS_MSR_64:
+        case ESR_EL1_EC_UNKNOWN:
             print("Illegal instruction at 0x%x\n", state->pc);
             current_proc_kill(SIGILL);
         case ESR_EL1_EC_IABT_LEL:
@@ -86,8 +85,6 @@ void el0_sync_handler(struct arm64_thread_state *state, int exc, uint64_t esr) {
             current_proc_kill(SIGBUS);
         case ESR_EL1_EC_SError:
             panic("EL0 SError");
-        case ESR_EL1_EC_UNKNOWN:
-            panic("unknown EL0 sync exception?!");
         case ESR_EL1_EC_ENFP:
             panic("FPU instructions are trapped when they shouldn't be!");
         case ESR_EL1_EC_SVC_32:
@@ -105,7 +102,12 @@ void el0_sync_handler(struct arm64_thread_state *state, int exc, uint64_t esr) {
         case ESR_EC_SS_DBG_EL1:
             print("EL1 exception! ESR: 0x%x\n", esr);
             panic("EL1 exception!");
+        default:
+            print("idk, what?!\n");
+            print("ESR: 0x%x\n", esr);
+            panic("what is this esr?");
     }
+    panic("el0_sync_handler returned\n");
 }
 
 void panic_unhandled_exc(int exception_type) {
