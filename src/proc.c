@@ -156,25 +156,30 @@ int proc_new_executable(const char *path, char **argp, char *cwd) {
         err = E_OOB;
         goto fail;
     }
-    while (rela < rela_end) {
-        switch (rela->type) {
-            case R_AARCH64_RELATIVE:
-                *(uint64_t *)(executable_mem + rela->off) = executable_mem + rela->addend;
-                break;
-            default:
-                print("unknown relocation type %d\n", rela->type);
-                break;
+    if (rela != rela_end) {
+        while (rela < rela_end) {
+            switch (rela->type) {
+                case R_AARCH64_RELATIVE:
+                    *(uint64_t *)(executable_mem + rela->off) = executable_mem + rela->addend;
+                    break;
+                default:
+                    print("unknown relocation type %d\n", rela->type);
+                    break;
+            }
+            rela++;
         }
-        rela++;
     }
-    bzero(executable_mem + exec->bss_start, exec->bss_end - exec->bss_start);
+    size_t bss_size = exec->bss_end - exec->bss_start;
+    if (bss_size) {
+        bzero(executable_mem + exec->bss_start, bss_size);
+    }
     argp_copy = malloc_tagged(MAX_ARGS * sizeof(char *), proc_list[pid]);
     if (!argp_copy) {
         err = E_NOMEM;
         goto fail;
     }
     while (argp[argp_count] && argp_count < MAX_ARGS) {
-        char *str_copy = malloc_tagged(malloc(strlen(argp[argp_count]) + 1), proc_list[pid]);
+        char *str_copy = malloc_tagged(strlen(argp[argp_count]) + 1, proc_list[pid]);
         if (!str_copy) {
             err = E_NOMEM;
             goto fail;
@@ -292,7 +297,7 @@ void proc_exit(struct arm64_thread_state *state) {
         current_proc->state = *state;
         pid = current_proc->pid + 1;
     } else {
-        pid = 1;
+        pid = 0;
     }
     while (true) {
         bool has_procs = false;
