@@ -76,6 +76,9 @@ int main(int argc, const char *argv[]) {
     size_t ent_count = 0;
     if (argc < 2) {
         print("usage:\nrm [file]\nrm [dir]\n");
+        print("arguments:\n");
+        print("-r: recursive, delete a directory / directory tree\n");
+        print("-f: force, ignore errors if the file(s) don't exist\n");
         return 1;
     }
     for (int i = 1; i < argc; i++) {
