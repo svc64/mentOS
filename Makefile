@@ -62,4 +62,4 @@ debug:
 	qemu-system-aarch64 -M raspi3b -kernel $(OUT_DIR)/kernel8.img -serial stdio -S -s
 
 gdb:
-	gdb-multiarch -ex "target remote 127.0.0.1:1234" -ex "layout asm"
+	gdb -ex "target remote 127.0.0.1:1234" -ex "layout asm"
