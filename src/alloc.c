@@ -63,17 +63,16 @@ void *malloc_aligned_tagged(size_t size, size_t alignment, void *tag) {
     struct metadata *md = first_alloc;
     struct metadata *prev_md = NULL;
     while (md != NULL) {
-        prev_md = md;
         // detect a hole if we have one
         if (md->next != NULL) {
-            uintptr_t maybe_next = (uintptr_t)md + sizeof(struct metadata) + md->size;
-            if (maybe_next < (uintptr_t)md->next) {
+            uintptr_t maybe_next_md = (uintptr_t)md + sizeof(struct metadata) + md->size;
+            if (maybe_next_md < (uintptr_t)md->next) {
                 // we have a hole, great. does our size fit?
-                size_t hole_size = (uintptr_t)md->next - maybe_next;
+                size_t hole_size = (uintptr_t)md->next - maybe_next_md;
                 if (hole_size >= size + sizeof(struct metadata)) {
                     // there are 'hole_size' bytes between maybe_next and md->next, maybe we can allocate there.
                     // check alignment
-                    uintptr_t md_ptr = maybe_next;
+                    uintptr_t md_ptr = maybe_next_md;
                     uintptr_t data_ptr = md_ptr + sizeof(struct metadata);
                     if (alignment > 1 && (data_ptr & -alignment) != data_ptr) {
                         data_ptr = (data_ptr + alignment) & -alignment;
@@ -92,11 +91,12 @@ void *malloc_aligned_tagged(size_t size, size_t alignment, void *tag) {
                         return (void *)((uintptr_t)new_md + sizeof(struct metadata));
                     }
                 }
-            } else if (maybe_next > (uintptr_t)md->next) {
+            } else if (maybe_next_md > (uintptr_t)md->next) {
                 panic("memory allocated on heap metadata, that's bad...\n");
             }
         }
         // no hole.
+        prev_md = md;
         md = md->next;
     }
     // alright, there are no holes.
@@ -106,12 +106,12 @@ void *malloc_aligned_tagged(size_t size, size_t alignment, void *tag) {
         data_ptr = (data_ptr + alignment) & -alignment;
         new_md_ptr = data_ptr - sizeof(struct metadata);
     }
-    struct metadata *new_md = (struct metadata *)(new_md_ptr);
-    if ((uintptr_t)new_md + sizeof(struct metadata) + size > HEAP_END) {
+    if ((uintptr_t)data_ptr + size > HEAP_END) {
         // no space
         exit_critical_section();
         return NULL;
     }
+    struct metadata *new_md = (struct metadata *)(new_md_ptr);
     new_md->size = size;
     new_md->tag = tag;
     new_md->next = NULL;
@@ -181,7 +181,7 @@ void *realloc(void *ptr, size_t size) {
     }
     struct metadata *md = (struct metadata *)((uintptr_t)ptr - sizeof(struct metadata));
     if (md->free) {
-        panic("attempting to reallocate free memory!\n");
+        panic("attempting to reallocate free memory!");
     }
     if (!size) {
         // free
@@ -199,13 +199,16 @@ void *realloc(void *ptr, size_t size) {
         return ptr;
     }
     size_t expandable_size = md->size; // size of free memory after the allocation, the size that we can expand the allocation to
-    if (md->next != NULL) {
+    if (md->next) {
         // we should never actually have a situation where the next allocations are marked as free
         expandable_size = (uintptr_t)md->next - (uintptr_t)ptr;
     } else {
         expandable_size = HEAP_END - (uintptr_t)ptr;
     }
-    if (expandable_size <= size || (uintptr_t)ptr + size > HEAP_END) {
+    if (expandable_size >= size) {
+        // great! we can just modify the size
+        md->size = size;
+    } else {
         // re-allocate the memory at a new address
         void *new_alloc = malloc_tagged(size, md->tag);
         if (new_alloc == NULL) {
@@ -217,8 +220,6 @@ void *realloc(void *ptr, size_t size) {
         exit_critical_section();
         return new_alloc;
     }
-    // great! we can just modify the size
-    md->size = size;
     exit_critical_section();
     return ptr;
 }
