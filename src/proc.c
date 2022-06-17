@@ -134,6 +134,11 @@ int proc_new_executable(const char *path, char **argp, char *cwd) {
         err = size_read;
         goto fail;
     }
+    if (size_read <= sizeof(struct mentos_executable)) {
+        close(fd);
+        err = E_OOB;
+        goto fail;
+    }
     close(fd);
     if (size_read != file_size) {
         close(fd);
