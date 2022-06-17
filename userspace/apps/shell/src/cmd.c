@@ -36,24 +36,21 @@ void cmd_run(struct command *cmd) {
         exec_ret = exec(cmd->executable, cmd->argv, cmd->background);
     }
     if (exec_ret < 0) {
+        char *err_s;
         switch (exec_ret) {
             case E_NXFILE:
                 print("File not found: %s\n", executable);
                 break;
-            case E_NOMEM:
-                print("error: out of memory!\n");
-                break;
             case E_FORMAT:
                 print("exec format error: %s\n", executable);
                 break;
-            case E_INVALID_PATH:
-                print("Invalid path: %s\n", executable);
-                break;
-            case E_IOERR:
-                print("I/O error: %s\n", executable);
-                break;
             default:
-                print("unknown error: %d\n", exec_ret);
+                err_s = err_str(exec_ret);
+                if (err_s) {
+                    print("%s: %s\n", err_s, executable);
+                } else {
+                    print("Unknown error (%d): %s\n", exec_ret, executable);
+                }
                 break;
         }
     }
