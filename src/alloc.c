@@ -7,6 +7,7 @@
 #include "proc.h"
 #include "mmio.h"
 #include "stdlib.h"
+#include "defs.h"
 extern volatile unsigned char _end; // where our kernel image ends
 #define HEAP_END    MMIO_BASE
 void *heap = (void *)(&_end); // actual heap with actual data
@@ -68,8 +69,8 @@ void *malloc_aligned_tagged(size_t size, size_t alignment, void *tag) {
             uintptr_t maybe_next_md = (uintptr_t)md + sizeof(struct metadata) + md->size;
             if (maybe_next_md < (uintptr_t)md->next) {
                 // we have a hole, great. does our size fit?
-                size_t hole_size = (uintptr_t)md->next - maybe_next_md;
-                if (hole_size >= size + sizeof(struct metadata)) {
+                ssize_t hole_size = (uintptr_t)md->next - maybe_next_md;
+                if (hole_size >= (ssize_t)(size + sizeof(struct metadata))) {
                     // there are 'hole_size' bytes between maybe_next and md->next, maybe we can allocate there.
                     // check alignment
                     uintptr_t md_ptr = maybe_next_md;
@@ -80,7 +81,7 @@ void *malloc_aligned_tagged(size_t size, size_t alignment, void *tag) {
                     }
                     // size check
                     hole_size = (uintptr_t)md->next - md_ptr;
-                    if (hole_size >= size + sizeof(struct metadata)) {
+                    if (hole_size >= (ssize_t)(size + sizeof(struct metadata))) {
                         struct metadata *new_md = (struct metadata *)(md_ptr);
                         new_md->size = size;
                         new_md->tag = tag;

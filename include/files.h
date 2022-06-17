@@ -1,8 +1,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include "fatfs/ff.h"
-// Signed size
-typedef long ssize_t;
+#include "defs.h"
 
 #define MAX_DESCRIPTORS 1024
 #define O_READ      0
